@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  # Main benchmark service
+  benchmark:
+    build:
+      context: .
+      target: development
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:1024
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
+      - ./models:/app/models
+      - ./results:/app/results
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    ports:
+      - "8501:8501"
+    command: streamlit run dashboard/app.py --server.port 8501 --server.address 0.0.0.0
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # Model containers (examples)
+  svd-xt:
+    image: vid-bench/svd-xt:latest
+    build:
+      context: ./docker/models/svd-xt
+    environment:
+      - MODEL_PRECISION=fp16
+      - COMPILE_MODE=reduce-overhead
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - ./models/svd-xt:/app/models
+      - ./results:/app/results
+
+  pika-lumiere:
+    image: vid-bench/pika-lumiere:latest
+    build:
+      context: ./docker/models/pika-lumiere
+    environment:
+      - MODEL_PRECISION=fp16
+      - BATCH_SIZE=1
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - ./models/pika-lumiere:/app/models
+      - ./results:/app/results
+
+  # Development services
+  jupyter:
+    build:
+      context: .
+      target: development
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./notebooks:/app/notebooks
+      - ./src:/app/src
+      - ./data:/app/data
+    command: jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+
+  # Testing service
+  test:
+    build:
+      context: .
+      target: development
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
+    command: pytest
+    environment:
+      - PYTHONPATH=/app/src
+
+volumes:
+  redis_data:
+
+networks:
+  default:
+    driver: bridge
