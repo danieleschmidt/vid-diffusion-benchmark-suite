@@ -1,11 +1,22 @@
-"""Pytest configuration and shared fixtures."""
+"""Pytest configuration and shared fixtures for vid_diffusion_bench tests."""
 
 import pytest
 import torch
-from unittest.mock import MagicMock
+import numpy as np
+from unittest.mock import Mock, MagicMock
+import tempfile
+import os
+from pathlib import Path
 
 from vid_diffusion_bench import BenchmarkSuite
 from vid_diffusion_bench.models import ModelAdapter
+
+
+@pytest.fixture
+def temp_dir():
+    """Create a temporary directory for test files."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        yield Path(tmp_dir)
 
 
 @pytest.fixture
@@ -26,6 +37,50 @@ def mock_model():
     }
     mock.name = "mock_model"
     return mock
+
+
+@pytest.fixture
+def mock_gpu_available():
+    """Mock GPU availability."""
+    original_available = torch.cuda.is_available
+    torch.cuda.is_available = Mock(return_value=True)
+    yield True
+    torch.cuda.is_available = original_available
+
+
+@pytest.fixture
+def mock_gpu_unavailable():
+    """Mock GPU unavailability."""
+    original_available = torch.cuda.is_available
+    torch.cuda.is_available = Mock(return_value=False)
+    yield False
+    torch.cuda.is_available = original_available
+
+
+@pytest.fixture
+def benchmark_config():
+    """Default benchmark configuration."""
+    return {
+        "models": ["test-model"],
+        "prompts": ["test prompt"],
+        "num_frames": 16,
+        "fps": 8,
+        "resolution": (256, 256),
+        "batch_size": 1,
+        "seed": 42
+    }
+
+
+@pytest.fixture(autouse=True)
+def set_test_env():
+    """Set environment variables for testing."""
+    os.environ["TESTING"] = "1"
+    os.environ["TORCH_HOME"] = "/tmp/torch_test"
+    yield
+    if "TESTING" in os.environ:
+        del os.environ["TESTING"]
+    if "TORCH_HOME" in os.environ:
+        del os.environ["TORCH_HOME"]
 
 
 @pytest.fixture
