@@ -1,0 +1,286 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "python.defaultInterpreterPath": "./venv/bin/python",
+    "python.terminal.activateEnvironment": true,
+    
+    // Code quality
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.ruffEnabled": true,
+    "python.linting.mypyEnabled": true,
+    "python.formatting.provider": "black",
+    "python.sortImports.provider": "isort",
+    
+    // Testing
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestArgs": [
+      "tests",
+      "--verbose",
+      "--tb=short"
+    ],
+    
+    // Editor
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true,
+      "source.fixAll.ruff": true
+    },
+    "editor.rulers": [88],
+    
+    // Files
+    "files.exclude": {
+      "**/__pycache__": true,
+      "**/*.pyc": true,
+      "**/.pytest_cache": true,
+      "**/.mypy_cache": true,
+      "**/.ruff_cache": true,
+      "**/site": true,
+      "**/build": true,
+      "**/dist": true
+    },
+    "files.watcherExclude": {
+      "**/__pycache__/**": true,
+      "**/.git/objects/**": true,
+      "**/.git/subtree-cache/**": true,
+      "**/node_modules/**": true,
+      "**/site/**": true
+    },
+    
+    // Search
+    "search.exclude": {
+      "**/__pycache__": true,
+      "**/.git": true,
+      "**/site": true,
+      "**/build": true,
+      "**/dist": true,
+      "**/*.log": true
+    },
+    
+    // Terminal
+    "terminal.integrated.env.linux": {
+      "PYTHONPATH": "${workspaceFolder}/src"
+    },
+    
+    // Language specific
+    "[python]": {
+      "editor.defaultFormatter": "ms-python.black-formatter",
+      "editor.codeActionsOnSave": {
+        "source.organizeImports": true
+      }
+    },
+    "[yaml]": {
+      "editor.defaultFormatter": "redhat.vscode-yaml",
+      "editor.insertSpaces": true,
+      "editor.tabSize": 2
+    },
+    "[markdown]": {
+      "editor.wordWrap": "on",
+      "editor.quickSuggestions": {
+        "comments": "off",
+        "strings": "off",
+        "other": "off"
+      }
+    },
+    
+    // Docker
+    "docker.showStartPage": false,
+    
+    // Git
+    "git.autofetch": true,
+    "git.enableSmartCommit": true,
+    
+    // Jupyter
+    "jupyter.defaultKernel": "Python 3",
+    "jupyter.sendSelectionToInteractiveWindow": true
+  },
+  
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Install Development Dependencies",
+        "type": "shell",
+        "command": "pip install -e '.[dev,docs,test]'",
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "shared"
+        }
+      },
+      {
+        "label": "Run Tests",
+        "type": "shell", 
+        "command": "pytest",
+        "group": "test",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "shared"
+        }
+      },
+      {
+        "label": "Run Tests with Coverage",
+        "type": "shell",
+        "command": "pytest --cov=vid_diffusion_bench --cov-report=html --cov-report=term-missing",
+        "group": "test",
+        "presentation": {
+          "echo": true,
+          "reveal": "always", 
+          "focus": false,
+          "panel": "shared"
+        }
+      },
+      {
+        "label": "Format Code",
+        "type": "shell",
+        "command": "black src tests && isort src tests && ruff check --fix src tests",
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "shared"
+        }
+      },
+      {
+        "label": "Type Check",
+        "type": "shell",
+        "command": "mypy src",
+        "group": "test",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "shared"
+        }
+      },
+      {
+        "label": "Security Scan",
+        "type": "shell",
+        "command": "bandit -r src && safety check && detect-secrets scan --baseline .secrets.baseline",
+        "group": "test",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "shared"
+        }
+      },
+      {
+        "label": "Build Documentation",
+        "type": "shell",
+        "command": "mkdocs build",
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "shared"
+        }
+      },
+      {
+        "label": "Serve Documentation",
+        "type": "shell",
+        "command": "mkdocs serve",
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "shared"
+        },
+        "isBackground": true
+      },
+      {
+        "label": "Start Monitoring Stack",
+        "type": "shell",
+        "command": "docker compose -f monitoring/docker-compose.monitoring.yml up -d",
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "shared"
+        }
+      }
+    ]
+  },
+  
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Python: Current File",
+        "type": "python",
+        "request": "launch",
+        "program": "${file}",
+        "console": "integratedTerminal",
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}/src"
+        }
+      },
+      {
+        "name": "Python: CLI",
+        "type": "python",
+        "request": "launch",
+        "module": "vid_diffusion_bench.cli",
+        "console": "integratedTerminal",
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}/src"
+        },
+        "args": ["--help"]
+      },
+      {
+        "name": "Python: Pytest Current File",
+        "type": "python",
+        "request": "launch",
+        "module": "pytest",
+        "console": "integratedTerminal",
+        "cwd": "${workspaceFolder}",
+        "args": ["${file}", "-v"]
+      },
+      {
+        "name": "Python: Pytest All",
+        "type": "python", 
+        "request": "launch",
+        "module": "pytest",
+        "console": "integratedTerminal",
+        "cwd": "${workspaceFolder}",
+        "args": ["tests/", "-v"]
+      }
+    ]
+  },
+  
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "ms-python.pylint", 
+      "ms-python.black-formatter",
+      "ms-python.isort",
+      "charliermarsh.ruff",
+      "ms-python.mypy-type-checker",
+      "ms-toolsai.jupyter",
+      "ms-docker.docker",
+      "redhat.vscode-yaml",
+      "ms-vscode.test-adapter-converter",
+      "ms-python.pytest",
+      "GitHub.copilot",
+      "GitHub.vscode-pull-request-github",
+      "eamodio.gitlens",
+      "streetsidesoftware.code-spell-checker",
+      "ms-vscode.vscode-json",
+      "ms-kubernetes-tools.vscode-kubernetes-tools"
+    ]
+  }
+}

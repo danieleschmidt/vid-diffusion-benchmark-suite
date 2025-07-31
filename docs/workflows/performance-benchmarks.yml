@@ -1,0 +1,231 @@
+# Performance Benchmark Automation
+# This workflow runs performance benchmarks and tracks regression over time
+#
+# Setup Instructions:
+# 1. Enable this workflow by creating it in .github/workflows/
+# 2. Configure repository secrets:
+#    - BENCHMARK_TOKEN: For accessing benchmark results storage
+#    - SLACK_WEBHOOK: For performance regression notifications (optional)
+# 3. Adjust benchmark parameters in the matrix strategy below
+# 4. Configure branch protection to require benchmarks for releases
+
+name: Performance Benchmarks
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/**'
+      - 'pyproject.toml'
+      - 'requirements*.txt'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'pyproject.toml'
+      - 'requirements*.txt'
+  schedule:
+    # Run nightly performance benchmarks
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      benchmark_suite:
+        description: 'Benchmark suite to run'
+        required: false
+        default: 'standard'
+        type: choice
+        options:
+          - standard
+          - comprehensive
+          - regression-only
+
+env:
+  PYTHONPATH: src
+  BENCHMARK_RESULTS_DIR: benchmark-results
+  PERFORMANCE_BASELINE: main
+
+jobs:
+  performance-benchmarks:
+    runs-on: [self-hosted, gpu]
+    timeout-minutes: 120
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        model_category: [tier1, tier2]
+        batch_size: [1, 4]
+        resolution: ['512x512', '1024x1024']
+        exclude:
+          # Skip expensive combinations for PR builds
+          - model_category: tier2
+            batch_size: 4
+            resolution: '1024x1024'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for baseline comparison
+          
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          
+      - name: Install dependencies
+        run: |
+          pip install -e '.[dev,test]'
+          pip install pytest-benchmark hyperfine
+          
+      - name: Setup GPU monitoring
+        run: |
+          nvidia-smi --query-gpu=name,memory.total --format=csv
+          
+      - name: Download baseline results
+        if: github.event_name != 'schedule'
+        run: |
+          # Download baseline performance data for comparison
+          mkdir -p ${{ env.BENCHMARK_RESULTS_DIR }}
+          # Note: Replace with your actual storage solution
+          # curl -H "Authorization: token ${{ secrets.BENCHMARK_TOKEN }}" \
+          #      https://api.example.com/benchmarks/baseline \
+          #      -o ${{ env.BENCHMARK_RESULTS_DIR }}/baseline.json || true
+          
+      - name: Run performance benchmarks
+        env:
+          MODEL_CATEGORY: ${{ matrix.model_category }}
+          BATCH_SIZE: ${{ matrix.batch_size }}
+          RESOLUTION: ${{ matrix.resolution }}
+        run: |
+          # Standard benchmark suite
+          python -m pytest tests/performance/ \
+            --benchmark-only \
+            --benchmark-json=${{ env.BENCHMARK_RESULTS_DIR }}/benchmark-${{ matrix.model_category }}-${{ matrix.batch_size }}-${{ matrix.resolution }}.json \
+            --benchmark-warmup=2 \
+            --benchmark-min-rounds=3 \
+            -k "test_model_inference_speed or test_memory_usage or test_throughput" \
+            -v
+            
+          # GPU memory profiling
+          python scripts/profile_gpu_memory.py \
+            --model-category ${{ matrix.model_category }} \
+            --batch-size ${{ matrix.batch_size }} \
+            --resolution ${{ matrix.resolution }} \
+            --output ${{ env.BENCHMARK_RESULTS_DIR }}/gpu-profile-${{ matrix.model_category }}-${{ matrix.batch_size }}-${{ matrix.resolution }}.json
+            
+      - name: Run load testing
+        if: matrix.model_category == 'tier1' && matrix.batch_size == 1
+        run: |
+          # Concurrent request handling test
+          python -m pytest tests/performance/test_load_testing.py \
+            --benchmark-json=${{ env.BENCHMARK_RESULTS_DIR }}/load-test.json \
+            -v
+            
+      - name: Analyze performance regression
+        if: github.event_name != 'schedule'
+        run: |
+          python scripts/analyze_performance_regression.py \
+            --current-results ${{ env.BENCHMARK_RESULTS_DIR }}/ \
+            --baseline-results ${{ env.BENCHMARK_RESULTS_DIR }}/baseline.json \
+            --threshold 10 \
+            --output ${{ env.BENCHMARK_RESULTS_DIR }}/regression-analysis.json
+            
+      - name: Generate performance report
+        run: |
+          python scripts/generate_performance_report.py \
+            --benchmark-results ${{ env.BENCHMARK_RESULTS_DIR }}/ \
+            --output-format html \
+            --output ${{ env.BENCHMARK_RESULTS_DIR }}/performance-report.html
+            
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-results-${{ matrix.model_category }}-${{ matrix.batch_size }}-${{ matrix.resolution }}
+          path: ${{ env.BENCHMARK_RESULTS_DIR }}/
+          retention-days: 30
+          
+      - name: Store baseline results
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          # Store results as new baseline
+          # Note: Replace with your actual storage solution
+          # curl -X POST -H "Authorization: token ${{ secrets.BENCHMARK_TOKEN }}" \
+          #      -H "Content-Type: application/json" \
+          #      --data @${{ env.BENCHMARK_RESULTS_DIR }}/benchmark-${{ matrix.model_category }}-${{ matrix.batch_size }}-${{ matrix.resolution }}.json \
+          #      https://api.example.com/benchmarks/baseline
+          echo "Would store baseline results for commit ${{ github.sha }}"
+          
+      - name: Check performance regression
+        if: github.event_name == 'pull_request'
+        run: |
+          # Fail if significant regression detected
+          if [ -f "${{ env.BENCHMARK_RESULTS_DIR }}/regression-analysis.json" ]; then
+            python -c "
+            import json
+            with open('${{ env.BENCHMARK_RESULTS_DIR }}/regression-analysis.json') as f:
+                analysis = json.load(f)
+            if analysis.get('significant_regression', False):
+                print('❌ Significant performance regression detected!')
+                print(f'Regression details: {analysis.get(\"regression_summary\", \"N/A\")}')
+                exit(1)
+            else:
+                print('✅ No significant performance regression detected')
+            "
+          fi
+          
+      - name: Comment PR with performance results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const path = '${{ env.BENCHMARK_RESULTS_DIR }}/regression-analysis.json';
+            
+            if (fs.existsSync(path)) {
+              const analysis = JSON.parse(fs.readFileSync(path, 'utf8'));
+              
+              const comment = `## 🚀 Performance Benchmark Results
+              
+              **Configuration:** ${{ matrix.model_category }}, batch_size=${{ matrix.batch_size }}, resolution=${{ matrix.resolution }}
+              
+              ${analysis.significant_regression ? '❌ **Significant Regression Detected**' : '✅ **No Significant Regression**'}
+              
+              ### Key Metrics:
+              - **Inference Speed:** ${analysis.metrics?.inference_speed || 'N/A'}
+              - **Memory Usage:** ${analysis.metrics?.memory_usage || 'N/A'}  
+              - **Throughput:** ${analysis.metrics?.throughput || 'N/A'}
+              
+              <details>
+              <summary>View detailed analysis</summary>
+              
+              \`\`\`json
+              ${JSON.stringify(analysis, null, 2)}
+              \`\`\`
+              </details>
+              
+              [View full performance report](${{ env.BENCHMARK_RESULTS_DIR }}/performance-report.html)
+              `;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+            
+  notify-performance-issues:
+    needs: performance-benchmarks
+    runs-on: ubuntu-latest
+    if: failure() && github.event_name == 'schedule'
+    
+    steps:
+      - name: Notify performance degradation
+        if: env.SLACK_WEBHOOK != ''
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"🚨 Performance benchmarks failed in video-diffusion-benchmark-suite. Check the workflow for details."}' \
+            $SLACK_WEBHOOK
