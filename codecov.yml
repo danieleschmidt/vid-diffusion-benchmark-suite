@@ -1,0 +1,99 @@
+codecov:
+  require_ci_to_pass: yes
+  notify:
+    wait_for_ci: yes
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+  
+  status:
+    project:
+      default:
+        target: 85%
+        threshold: 1%
+        base: auto
+        flags:
+          - unit
+        paths:
+          - "src/"
+    patch:
+      default:
+        target: 80%
+        threshold: 2%
+        base: auto
+        flags:
+          - unit
+        paths:
+          - "src/"
+
+  ignore:
+    - "tests/"
+    - "docs/"
+    - "scripts/"
+    - "**/__init__.py"
+    - "**/conftest.py"
+
+parsers:
+  gcov:
+    branch_detection:
+      conditional: yes
+      loop: yes
+      method: no
+      macro: no
+
+comment:
+  layout: "reach,diff,flags,tree"
+  behavior: default
+  require_changes: no
+  require_base: no
+  require_head: yes
+
+github_checks:
+  annotations: true
+
+flags:
+  unit:
+    paths:
+      - src/
+    carryforward: true
+  integration:
+    paths:
+      - src/
+    carryforward: true
+  performance:
+    paths:  
+      - src/
+    carryforward: false
+
+component_management:
+  default_rules:
+    statuses:
+      - type: project
+        target: 85%
+      - type: patch
+        target: 80%
+  individual_components:
+    - component_id: benchmark_engine
+      name: "Benchmark Engine"
+      paths:
+        - src/vid_diffusion_bench/benchmark.py
+        - src/vid_diffusion_bench/profiler.py
+      statuses:
+        - type: project
+          target: 90%
+    - component_id: models
+      name: "Model Registry"  
+      paths:
+        - src/vid_diffusion_bench/models/
+      statuses:
+        - type: project
+          target: 85%
+    - component_id: metrics
+      name: "Metrics Engine"
+      paths:
+        - src/vid_diffusion_bench/metrics.py
+      statuses:
+        - type: project
+          target: 88%
