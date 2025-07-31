@@ -1,0 +1,107 @@
+# Dependabot configuration for automated dependency updates
+# This file configures Dependabot to automatically create PRs for dependency updates
+
+version: 2
+updates:
+  # Python dependencies in pyproject.toml
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "maintainer-team"
+    assignees:
+      - "maintainer-team"
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    ignore:
+      # Ignore major version updates for these packages (require manual review)
+      - dependency-name: "torch"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "torchvision"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "diffusers"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "transformers"
+        update-types: ["version-update:semver-major"]
+    groups:
+      pytorch:
+        patterns:
+          - "torch*"
+        exclude-patterns:
+          - "torchmetrics"
+      huggingface:
+        patterns:
+          - "transformers"
+          - "diffusers"
+          - "accelerate"
+      testing:
+        patterns:
+          - "pytest*"
+        dependency-type: "development"
+      linting:
+        patterns:
+          - "black"
+          - "isort" 
+          - "ruff"
+          - "mypy"
+        dependency-type: "development"
+
+  # Docker base images
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "maintainer-team"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "docker"
+
+  # Docker Compose files
+  - package-ecosystem: "docker"
+    directory: "/monitoring"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "07:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "maintainer-team"
+    labels:
+      - "dependencies"
+      - "monitoring"
+      - "docker"
+
+  # GitHub Actions (when available)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "maintainer-team"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"

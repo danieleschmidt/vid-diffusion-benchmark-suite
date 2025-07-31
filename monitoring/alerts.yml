@@ -1,0 +1,98 @@
+# Prometheus Alerting Rules for Video Diffusion Benchmark Suite
+
+groups:
+  - name: benchmark_performance
+    rules:
+      - alert: HighBenchmarkFailureRate
+        expr: rate(benchmark_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: vid-diffusion-bench
+        annotations:
+          summary: "High benchmark failure rate detected"
+          description: "Benchmark error rate is {{ $value }} errors/sec for the last 5 minutes"
+
+      - alert: GPUMemoryExhaustion
+        expr: gpu_memory_used_bytes / gpu_memory_total_bytes > 0.95
+        for: 30s
+        labels:
+          severity: critical
+          service: vid-diffusion-bench
+        annotations:
+          summary: "GPU memory nearly exhausted"
+          description: "GPU {{ $labels.device }} memory usage is {{ $value }}% for 30+ seconds"
+
+      - alert: SlowModelInference
+        expr: model_inference_duration_seconds > 300
+        for: 1m
+        labels:
+          severity: warning
+          service: vid-diffusion-bench
+        annotations:
+          summary: "Model inference taking too long"
+          description: "Model {{ $labels.model_name }} inference duration is {{ $value }}s"
+
+      - alert: QueueBacklog
+        expr: benchmark_queue_size > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: vid-diffusion-bench
+        annotations:
+          summary: "Large benchmark queue backlog"
+          description: "{{ $value }} jobs pending in benchmark queue for 5+ minutes"
+
+  - name: system_health
+    rules:
+      - alert: HighSystemLoad
+        expr: system_load_average_5m > 8
+        for: 3m
+        labels:
+          severity: warning
+          service: vid-diffusion-bench
+        annotations:
+          summary: "High system load average"
+          description: "System load average is {{ $value }} for 3+ minutes"
+
+      - alert: LowDiskSpace
+        expr: disk_free_bytes / disk_total_bytes < 0.1
+        for: 1m
+        labels:
+          severity: critical
+          service: vid-diffusion-bench
+        annotations:
+          summary: "Low disk space"
+          description: "Only {{ $value }}% disk space remaining"
+
+      - alert: ServiceDown
+        expr: up{job="vid-diffusion-bench"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: vid-diffusion-bench
+        annotations:
+          summary: "Service is down"
+          description: "Vid-diffusion-bench service has been down for 1+ minutes"
+
+  - name: model_quality
+    rules:
+      - alert: DegradedModelQuality
+        expr: avg_over_time(fvd_score[1h]) > avg_over_time(fvd_score[24h]) * 1.2
+        for: 15m
+        labels:
+          severity: warning
+          service: vid-diffusion-bench
+        annotations:
+          summary: "Model quality degradation detected"
+          description: "Average FVD score increased by 20% compared to 24h baseline"
+
+      - alert: InconsistentResults
+        expr: stddev_over_time(fvd_score[1h]) > 50
+        for: 10m
+        labels:
+          severity: warning
+          service: vid-diffusion-bench
+        annotations:
+          summary: "High variance in benchmark results"
+          description: "FVD score standard deviation is {{ $value }} over last hour"
