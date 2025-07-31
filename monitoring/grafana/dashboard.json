@@ -1,0 +1,99 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Video Diffusion Benchmark Suite - System Metrics",
+    "tags": ["vid-diffusion", "benchmarking", "performance"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "schemaVersion": 30,
+    "version": 1,
+    "panels": [
+      {
+        "id": 1,
+        "title": "Benchmark Execution Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(benchmark_executions_total[5m])",
+            "legendFormat": "Executions/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "decimals": 2
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "GPU Memory Usage",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "gpu_memory_used_bytes / gpu_memory_total_bytes * 100",
+            "legendFormat": "GPU {{device}} Memory %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "max": 100
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Model Inference Latency",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "model_inference_duration_seconds",
+            "legendFormat": "{{model_name}}"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Error Rate by Model",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(benchmark_errors_total[5m]) by (model_name)",
+            "legendFormat": "{{model_name}} errors/sec"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Queue Depth",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "benchmark_queue_size",
+            "legendFormat": "Pending Jobs"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "FVD Score Distribution",
+        "type": "histogram",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, fvd_score_bucket)",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, fvd_score_bucket)",
+            "legendFormat": "50th percentile"
+          }
+        ]
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    }
+  }
+}
