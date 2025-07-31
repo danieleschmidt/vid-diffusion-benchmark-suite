@@ -77,7 +77,7 @@ Since the repository was already at ADVANCED maturity, the focus shifted to cutt
 
 ### 4. Performance Benchmarking Automation
 **Files:** 
-- `.github/workflows/performance-benchmarks.yml`
+- `docs/workflows/performance-benchmarks.yml` (GitHub workflow template)
 - `scripts/analyze_performance_regression.py`
 - `scripts/generate_performance_report.py`  
 - `scripts/profile_gpu_memory.py`
@@ -102,7 +102,7 @@ Since the repository was already at ADVANCED maturity, the focus shifted to cutt
 1. `.devcontainer/devcontainer.json` (GPU-enabled development environment)
 2. `vid-diffusion-benchmark.code-workspace` (Optimized VS Code configuration)
 3. `codecov.yml` (Advanced coverage configuration)
-4. `.github/workflows/performance-benchmarks.yml` (Automated performance testing)
+4. `docs/workflows/performance-benchmarks.yml` (Performance testing template)
 5. `scripts/analyze_performance_regression.py` (Statistical regression analysis)
 6. `scripts/generate_performance_report.py` (Performance reporting engine)
 7. `scripts/profile_gpu_memory.py` (GPU profiling tool)
