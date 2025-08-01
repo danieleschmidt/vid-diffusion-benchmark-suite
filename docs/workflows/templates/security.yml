@@ -1,3 +1,6 @@
+# Security Scanning Workflow Template  
+# Copy this file to .github/workflows/security.yml to enable
+
 name: Security Scanning
 
 on:
