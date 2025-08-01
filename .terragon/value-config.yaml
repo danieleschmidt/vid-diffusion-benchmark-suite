@@ -1,0 +1,245 @@
+# Terragon Autonomous SDLC Value Discovery Configuration
+# Repository: vid-diffusion-benchmark-suite
+# Maturity Level: MATURING (50-75% SDLC maturity)
+# Generated: 2025-08-01
+
+repository:
+  name: "vid-diffusion-benchmark-suite"
+  maturity_level: "maturing"
+  primary_language: "python"
+  framework: "pytorch/diffusers"
+  architecture: "ml-benchmark-suite"
+
+scoring:
+  # Adaptive weights based on MATURING repository level
+  weights:
+    maturing:
+      wsjf: 0.6           # High focus on value delivery
+      ice: 0.1            # Lower confidence in estimation
+      technicalDebt: 0.2  # Moderate debt management
+      security: 0.1       # Baseline security focus
+  
+  # Value calculation thresholds
+  thresholds:
+    minScore: 15              # Minimum composite score to execute
+    maxRisk: 0.7              # Maximum acceptable risk level
+    securityBoost: 2.0        # Security vulnerability multiplier
+    complianceBoost: 1.8      # Compliance deadline multiplier
+    hotspotMultiplier: 3.0    # Code churn/complexity multiplier
+
+discovery:
+  # Signal sources for value discovery
+  sources:
+    - gitHistory            # Parse commit messages for debt markers
+    - staticAnalysis        # Ruff, MyPy, Bandit scanning
+    - issueTrackers         # GitHub Issues (if accessible)
+    - vulnerabilityDatabases # Scan dependencies for CVEs
+    - performanceMonitoring # Benchmark regression detection
+    - documentationGaps     # Missing or outdated docs
+    - testCoverage          # Identify untested code paths
+    
+  # Analysis tools configuration
+  tools:
+    staticAnalysis:
+      - name: "ruff"
+        command: "ruff check src tests --format json"
+        patterns: ["E", "W", "F", "B", "C4", "UP"]
+      - name: "mypy"
+        command: "mypy src --json-report mypy-report"
+        focus: ["type-errors", "missing-imports"]
+      - name: "bandit"
+        command: "bandit -r src -f json"
+        severity: ["medium", "high"]
+    
+    security:
+      - name: "safety"
+        command: "safety check --json"
+        focus: "dependency-vulnerabilities"
+      - name: "detect-secrets"
+        command: "detect-secrets scan --baseline .secrets.baseline"
+        focus: "credential-leaks"
+    
+    performance:
+      - name: "pytest-benchmark"
+        command: "pytest tests/performance --benchmark-json=benchmark.json"
+        regression_threshold: 0.1  # 10% performance degradation
+    
+    quality:
+      - name: "coverage"
+        command: "pytest --cov=vid_diffusion_bench --cov-report=json"
+        target_coverage: 0.80
+
+# Autonomous execution parameters
+execution:
+  maxConcurrentTasks: 1        # Single-threaded execution for safety
+  executionWindow: "02:00-06:00"  # Safe execution hours (UTC)
+  
+  # Quality gates before execution
+  testRequirements:
+    minCoverage: 75             # Minimum test coverage percentage
+    performanceRegression: 10   # Max allowed performance regression %
+    securityViolations: 0       # Zero tolerance for security issues
+  
+  # Rollback triggers
+  rollbackTriggers:
+    - testFailure
+    - buildFailure  
+    - securityViolation
+    - performanceRegression
+    - lintingErrors
+
+# Value scoring model parameters
+valueModel:
+  # WSJF (Weighted Shortest Job First) components
+  wsjf:
+    userBusinessValue:
+      performance_improvement: 10
+      security_enhancement: 15
+      feature_addition: 8
+      bug_fix: 12
+      documentation: 4
+    
+    timeCriticality:
+      security_vulnerability: 20
+      performance_regression: 15
+      production_blocker: 18
+      feature_deadline: 8
+      maintenance: 3
+    
+    riskReduction:
+      technical_debt: 12
+      dependency_update: 8
+      test_coverage: 6
+      documentation_gap: 4
+      code_complexity: 10
+    
+    opportunityEnablement:
+      architecture_improvement: 14
+      developer_experience: 7
+      automation_enhancement: 9
+      tooling_upgrade: 5
+      monitoring_improvement: 8
+
+  # ICE (Impact, Confidence, Ease) scoring
+  ice:
+    impact_factors:
+      user_facing: 9
+      developer_productivity: 7
+      system_reliability: 8
+      maintenance_burden: 6
+      technical_debt_reduction: 7
+    
+    confidence_factors:
+      well_defined_scope: 8
+      similar_work_done: 7
+      clear_acceptance_criteria: 9
+      known_dependencies: 6
+      estimated_effort_reliable: 5
+    
+    ease_factors:
+      low_complexity: 9
+      existing_expertise: 8
+      good_test_coverage: 7
+      automated_deployment: 6
+      minimal_dependencies: 8
+
+  # Technical debt specific scoring
+  technicalDebt:
+    categories:
+      code_smells:
+        weight: 0.3
+        patterns: ["duplicate_code", "long_methods", "complex_conditionals"]
+      
+      security_debt:
+        weight: 0.4
+        patterns: ["vulnerable_dependencies", "hardcoded_secrets", "weak_auth"]
+      
+      performance_debt:
+        weight: 0.2
+        patterns: ["inefficient_queries", "memory_leaks", "blocking_operations"]
+      
+      maintainability_debt:
+        weight: 0.1
+        patterns: ["missing_tests", "outdated_docs", "deprecated_apis"]
+
+# Continuous learning configuration
+learning:
+  # Track prediction accuracy
+  trackAccuracy: true
+  
+  # Model recalibration triggers
+  recalibrationTriggers:
+    accuracyThreshold: 0.7      # Recalibrate if accuracy drops below 70%
+    predictionCount: 20         # Recalibrate after 20 predictions
+    timePeriod: "30d"          # Recalibrate monthly
+  
+  # Learning data retention
+  retentionPeriod: "90d"       # Keep learning data for 3 months
+  
+  # Feedback loop configuration
+  feedbackLoop:
+    collectActualEffort: true
+    collectActualImpact: true
+    collectUserSatisfaction: false  # Not applicable for autonomous system
+    collectBusinessMetrics: true
+
+# Integration settings
+integrations:
+  github:
+    enabled: true
+    features:
+      - issues_analysis
+      - pr_comments
+      - commit_analysis
+      - workflow_integration
+  
+  monitoring:
+    prometheus:
+      enabled: true
+      metrics_port: 9090
+    
+    grafana:
+      enabled: true
+      dashboard_port: 3000
+  
+  notifications:
+    slack:
+      enabled: false  # Configure webhook URL in secrets
+      channels: ["#dev-alerts", "#performance"]
+    
+    email:
+      enabled: false  # Configure SMTP settings in secrets
+
+# Backup and recovery
+backup:
+  valueMetrics: true           # Backup value tracking data
+  learningData: true           # Backup ML model training data
+  configurations: true         # Backup system configurations
+  retention_period: "1y"       # Keep backups for 1 year
+  
+  schedule:
+    frequency: "daily"
+    time: "03:00"              # 3 AM UTC backup
+    
+# Security and compliance
+security:
+  encryptLearningData: true    # Encrypt sensitive learning data
+  auditLogRetention: "2y"      # Keep audit logs for 2 years
+  accessControl:
+    requireApproval: false     # No human approval needed for autonomous execution
+    approvers: []              # Empty for fully autonomous operation
+  
+  compliance:
+    frameworks: []             # Add compliance frameworks if needed
+    reportingPeriod: "quarterly"
+
+# Development and debugging
+development:
+  debugMode: false             # Set to true for verbose logging
+  dryRun: false               # Set to true to simulate without executing
+  logLevel: "INFO"            # DEBUG, INFO, WARN, ERROR
+  
+  # Simulation parameters
+  simulation:
+    enabled: false
+    scenarios: ["normal_load", "high_debt", "security_incidents"]
