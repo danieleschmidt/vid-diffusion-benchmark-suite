@@ -1,0 +1,56 @@
+# Code Owners for Video Diffusion Benchmark Suite
+# 
+# This file defines who is responsible for reviewing changes to different parts of the codebase.
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global ownership - fallback for any files not specifically covered
+* @danieleschmidt
+
+# Core application code
+/src/vid_diffusion_bench/ @danieleschmidt @core-team
+
+# Model adapters and implementations
+/src/vid_diffusion_bench/models/ @danieleschmidt @model-team
+
+# Evaluation metrics and benchmarking
+/src/vid_diffusion_bench/metrics/ @danieleschmidt @metrics-team
+
+# Infrastructure and deployment
+/docker/ @danieleschmidt @platform-team
+/monitoring/ @danieleschmidt @platform-team
+/scripts/ @danieleschmidt @platform-team
+/.github/ @danieleschmidt @platform-team
+/Dockerfile @danieleschmidt @platform-team
+/docker-compose*.yml @danieleschmidt @platform-team
+
+# Documentation
+/docs/ @danieleschmidt @docs-team
+/README.md @danieleschmidt @docs-team
+/CHANGELOG.md @danieleschmidt @docs-team
+
+# Testing
+/tests/ @danieleschmidt @qa-team
+/conftest.py @danieleschmidt @qa-team
+
+# Configuration files
+/pyproject.toml @danieleschmidt @core-team
+/requirements*.txt @danieleschmidt @core-team
+/.pre-commit-config.yaml @danieleschmidt @core-team
+/.gitignore @danieleschmidt @core-team
+
+# Security and compliance
+/SECURITY.md @danieleschmidt @security-team
+/.github/workflows/ @danieleschmidt @security-team @platform-team
+
+# Project management
+/PROJECT_CHARTER.md @danieleschmidt @leadership-team
+/.github/project-metrics.json @danieleschmidt @leadership-team
+
+# Build and release
+/Makefile @danieleschmidt @platform-team
+/scripts/release.py @danieleschmidt @platform-team
+
+# Specific critical files requiring multiple reviewers
+/src/vid_diffusion_bench/benchmark.py @danieleschmidt @core-team @metrics-team
+/src/vid_diffusion_bench/cli.py @danieleschmidt @core-team
+/docker-compose.yml @danieleschmidt @platform-team @security-team
