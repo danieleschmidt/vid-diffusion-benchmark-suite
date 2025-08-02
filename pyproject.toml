@@ -78,6 +78,8 @@ Repository = "https://github.com/yourusername/vid-diffusion-benchmark-suite"
 
 [project.scripts]
 vid-bench = "vid_diffusion_bench.cli:main"
+vid-benchmark = "vid_diffusion_bench.cli:main"
+vdbench = "vid_diffusion_bench.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
