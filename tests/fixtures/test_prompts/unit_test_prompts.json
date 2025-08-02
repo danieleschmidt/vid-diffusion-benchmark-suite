@@ -1,0 +1,96 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "description": "Unit test prompts for Video Diffusion Benchmark Suite",
+    "total_prompts": 10,
+    "categories": ["simple", "motion", "objects", "scenes"]
+  },
+  "prompts": [
+    {
+      "id": "unit_001",
+      "text": "A red ball rolling on a table",
+      "category": "simple",
+      "complexity": "low",
+      "expected_elements": ["ball", "rolling", "table"],
+      "motion_type": "translation"
+    },
+    {
+      "id": "unit_002", 
+      "text": "A cat sitting and then standing up",
+      "category": "simple",
+      "complexity": "low",
+      "expected_elements": ["cat", "sitting", "standing"],
+      "motion_type": "pose_change"
+    },
+    {
+      "id": "unit_003",
+      "text": "Waves crashing on a beach",
+      "category": "motion",
+      "complexity": "medium",
+      "expected_elements": ["waves", "beach", "water"],
+      "motion_type": "fluid"
+    },
+    {
+      "id": "unit_004",
+      "text": "A spinning windmill",
+      "category": "motion", 
+      "complexity": "low",
+      "expected_elements": ["windmill", "spinning"],
+      "motion_type": "rotation"
+    },
+    {
+      "id": "unit_005",
+      "text": "A yellow flower in a garden",
+      "category": "objects",
+      "complexity": "low",
+      "expected_elements": ["flower", "garden", "yellow"],
+      "motion_type": "static"
+    },
+    {
+      "id": "unit_006",
+      "text": "A blue car driving down a road",
+      "category": "objects",
+      "complexity": "medium",
+      "expected_elements": ["car", "road", "driving", "blue"],
+      "motion_type": "translation"
+    },
+    {
+      "id": "unit_007",
+      "text": "A forest with trees swaying in wind",
+      "category": "scenes",
+      "complexity": "medium", 
+      "expected_elements": ["forest", "trees", "wind"],
+      "motion_type": "oscillation"
+    },
+    {
+      "id": "unit_008",
+      "text": "A cityscape at sunset",
+      "category": "scenes",
+      "complexity": "high",
+      "expected_elements": ["cityscape", "sunset", "buildings"],
+      "motion_type": "lighting_change"
+    },
+    {
+      "id": "unit_009",
+      "text": "A person walking forward",
+      "category": "simple",
+      "complexity": "medium",
+      "expected_elements": ["person", "walking"],
+      "motion_type": "human_motion"
+    },
+    {
+      "id": "unit_010",
+      "text": "Fire burning in a fireplace",
+      "category": "motion",
+      "complexity": "high",
+      "expected_elements": ["fire", "fireplace", "flames"],
+      "motion_type": "particle"
+    }
+  ],
+  "usage_notes": {
+    "purpose": "Fast unit testing of model generation and evaluation pipelines",
+    "execution_time": "Each prompt should complete evaluation in <30 seconds",
+    "deterministic": "All prompts use fixed seeds for reproducible results",
+    "coverage": "Covers basic motion types and complexity levels"
+  }
+}

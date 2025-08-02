@@ -1,0 +1,109 @@
+# Mock Stable Video Diffusion Model Configuration
+# Used for unit testing without requiring actual model weights
+
+model_info:
+  name: "mock-svd-xt"
+  display_name: "Mock Stable Video Diffusion XT"
+  version: "1.1"
+  type: "image_to_video"
+  description: "Mock implementation of SVD-XT for testing purposes"
+  
+model_config:
+  # Model architecture parameters
+  model_type: "stable_video_diffusion"
+  unet_config:
+    sample_size: 64
+    in_channels: 8
+    out_channels: 4
+    down_block_types: ["CrossAttnDownBlock3D", "CrossAttnDownBlock3D", "CrossAttnDownBlock3D", "DownBlock3D"]
+    up_block_types: ["UpBlock3D", "CrossAttnUpBlock3D", "CrossAttnUpBlock3D", "CrossAttnUpBlock3D"]
+    block_out_channels: [320, 640, 1280, 1280]
+    layers_per_block: 2
+    attention_head_dim: [5, 10, 20, 20]
+    num_attention_heads: [64, 32, 16, 16]
+    cross_attention_dim: 1024
+    
+  # Generation parameters
+  generation:
+    default_num_frames: 25
+    max_num_frames: 50
+    default_fps: 7
+    max_fps: 30
+    default_resolution: [576, 1024]
+    supported_resolutions: 
+      - [512, 512]
+      - [576, 1024] 
+      - [768, 768]
+    guidance_scale_range: [1.0, 20.0]
+    default_guidance_scale: 7.5
+    num_inference_steps: 25
+    
+# Resource requirements
+requirements:
+  gpu_memory_gb: 12
+  system_memory_gb: 16
+  gpu_compute_capability: "7.5"
+  cuda_version: ">=11.8"
+  precision_support: ["fp32", "fp16"]
+  
+# Mock behavior configuration
+mock_behavior:
+  # Simulated generation time (milliseconds)
+  generation_time_ms: 5000
+  
+  # Memory usage simulation (GB)
+  peak_memory_usage_gb: 10.5
+  baseline_memory_usage_gb: 2.1
+  
+  # Mock output characteristics
+  output_format: "mp4"
+  output_fps: 7
+  output_resolution: [576, 1024]
+  
+  # Simulated quality metrics (for testing metric calculation)
+  simulated_metrics:
+    fvd_score: 145.3
+    is_mean: 38.7
+    is_std: 2.1
+    clip_similarity: 0.287
+    temporal_consistency: 0.891
+    
+  # Error simulation for testing error handling
+  error_scenarios:
+    - trigger: "prompt contains 'error'"
+      error_type: "GenerationError"
+      message: "Mock generation failed"
+    - trigger: "num_frames > 30"
+      error_type: "InvalidParameterError" 
+      message: "Frame count exceeds model limit"
+    - trigger: "guidance_scale > 15"
+      error_type: "InvalidParameterError"
+      message: "Guidance scale too high"
+      
+# API interface definition
+api_interface:
+  endpoints:
+    generate: "/generate"
+    health: "/health"
+    info: "/info"
+  
+  generate_request_schema:
+    required: ["prompt"]
+    optional: ["num_frames", "fps", "guidance_scale", "seed", "negative_prompt"]
+    
+  generate_response_schema:
+    success:
+      video_path: "string"
+      metadata: "object"
+      generation_time_ms: "integer"
+      memory_usage_gb: "float"
+    error:
+      error_type: "string"
+      message: "string"
+      details: "object"
+      
+# Test data paths (relative to fixture directory)
+test_data:
+  sample_outputs: "sample_videos/mock_svd_output.mp4"
+  reference_metrics: "expected_outputs/metrics/mock_svd_metrics.json"
+  performance_baseline: "expected_outputs/profiles/mock_svd_profile.json"
