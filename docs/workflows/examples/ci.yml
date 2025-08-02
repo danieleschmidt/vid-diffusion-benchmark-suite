@@ -1,0 +1,355 @@
+# Comprehensive CI Pipeline for Video Diffusion Benchmark Suite
+# Copy this file to .github/workflows/ci.yml
+
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.10"
+  PYTORCH_VERSION: "2.3.0"
+  CUDA_VERSION: "11.8"
+
+jobs:
+  # Code Quality and Linting
+  lint:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+
+    - name: Run ruff linting
+      run: ruff check src tests
+
+    - name: Run ruff formatting check
+      run: ruff format --check src tests
+
+    - name: Run black formatting check
+      run: black --check src tests
+
+    - name: Run isort import sorting check
+      run: isort --check-only src tests
+
+    - name: Run mypy type checking
+      run: mypy src
+
+    - name: Run bandit security analysis
+      run: bandit -r src -f json -o bandit-report.json
+
+    - name: Upload bandit results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: bandit-results
+        path: bandit-report.json
+
+  # Unit and Integration Tests
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg libgl1-mesa-glx
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[test,dev]"
+
+    - name: Run unit tests
+      run: |
+        pytest tests/unit/ \
+          --cov=vid_diffusion_bench \
+          --cov-report=xml \
+          --cov-report=html \
+          --junitxml=test-results.xml \
+          -v
+
+    - name: Run integration tests (CPU only)
+      run: |
+        pytest tests/integration/ \
+          -m "not gpu" \
+          --junitxml=integration-results.xml \
+          -v
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.python-version }}
+        path: |
+          test-results.xml
+          integration-results.xml
+          htmlcov/
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+
+  # GPU Tests (if self-hosted runners available)
+  gpu-tests:
+    name: GPU Tests
+    runs-on: self-hosted  # Requires self-hosted runner with GPU
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[test,dev]"
+
+    - name: Check GPU availability
+      run: |
+        nvidia-smi
+        python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
+
+    - name: Run GPU tests
+      run: |
+        pytest tests/ \
+          -m "gpu" \
+          --junitxml=gpu-test-results.xml \
+          -v
+
+    - name: Upload GPU test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: gpu-test-results
+        path: gpu-test-results.xml
+
+  # Security Scanning
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Run safety check
+      run: |
+        pip install safety
+        safety check --json --output safety-report.json
+
+    - name: Upload safety results
+      uses: actions/upload-artifact@v3
+      with:
+        name: safety-results
+        path: safety-report.json
+
+  # Build and Test Docker Images
+  build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build development image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        target: development
+        tags: vid-bench:dev-${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        outputs: type=docker,dest=/tmp/dev-image.tar
+
+    - name: Build production image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        target: production
+        tags: vid-bench:prod-${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        outputs: type=docker,dest=/tmp/prod-image.tar
+
+    - name: Load and test development image
+      run: |
+        docker load --input /tmp/dev-image.tar
+        docker run --rm vid-bench:dev-${{ github.sha }} python -c "import vid_diffusion_bench; print('Import successful')"
+
+    - name: Load and test production image
+      run: |
+        docker load --input /tmp/prod-image.tar
+        docker run --rm vid-bench:prod-${{ github.sha }} python -c "import vid_diffusion_bench; print('Import successful')"
+
+    - name: Scan images for vulnerabilities
+      run: |
+        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+          aquasec/trivy image vid-bench:prod-${{ github.sha }}
+
+    - name: Upload Docker images
+      uses: actions/upload-artifact@v3
+      with:
+        name: docker-images
+        path: /tmp/*.tar
+
+  # Documentation Build
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install documentation dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[docs]"
+
+    - name: Build documentation
+      run: |
+        mkdocs build --strict
+
+    - name: Upload documentation
+      uses: actions/upload-artifact@v3
+      with:
+        name: documentation
+        path: site/
+
+  # Performance Tests
+  performance:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[test,dev]"
+
+    - name: Run performance tests
+      run: |
+        pytest tests/performance/ \
+          --benchmark-only \
+          --benchmark-json=performance-results.json \
+          -v
+
+    - name: Upload performance results
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-results
+        path: performance-results.json
+
+  # SBOM Generation
+  sbom:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Generate SBOM
+      uses: anchore/sbom-action@v0
+      with:
+        path: ./
+        format: spdx-json
+
+    - name: Upload SBOM
+      uses: actions/upload-artifact@v3
+      with:
+        name: sbom
+        path: ${{ steps.sbom.outputs.fileName }}
+
+  # Notification
+  notify:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [lint, test, security, build, docs]
+    if: always()
+    steps:
+    - name: Notify Slack on success
+      if: success()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: success
+        text: "✅ CI pipeline passed for ${{ github.ref }}"
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    - name: Notify Slack on failure
+      if: failure()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: failure
+        text: "❌ CI pipeline failed for ${{ github.ref }}"
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

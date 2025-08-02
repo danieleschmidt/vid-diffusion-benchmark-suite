@@ -1,0 +1,198 @@
+{
+  "project": {
+    "name": "Video Diffusion Benchmark Suite",
+    "description": "Unified test-bed for next-gen open-source video diffusion models",
+    "version": "0.1.0",
+    "license": "MIT",
+    "repository": "https://github.com/danieleschmidt/vid-diffusion-benchmark-suite",
+    "documentation": "https://docs.vid-benchmark.com",
+    "dashboard": "https://vid-benchmark.com"
+  },
+  "metrics": {
+    "code_quality": {
+      "test_coverage": {
+        "target": "90%",
+        "current": "85%",
+        "unit_tests": "89%",
+        "integration_tests": "75%",
+        "end_to_end_tests": "60%"
+      },
+      "code_complexity": {
+        "cyclomatic_complexity": {
+          "average": 3.2,
+          "max_allowed": 10,
+          "files_exceeding": 2
+        },
+        "maintainability_index": {
+          "average": 78.5,
+          "min_threshold": 60
+        }
+      },
+      "technical_debt": {
+        "debt_ratio": "8.5%",
+        "target": "<10%",
+        "high_priority_issues": 3,
+        "medium_priority_issues": 12,
+        "low_priority_issues": 28
+      }
+    },
+    "performance": {
+      "benchmark_execution": {
+        "average_time_per_model": "8.5 minutes",
+        "target": "<10 minutes",
+        "fastest_model": "3.2 minutes",
+        "slowest_model": "15.8 minutes"
+      },
+      "api_performance": {
+        "average_response_time": "245ms",
+        "p95_response_time": "1.2s",
+        "p99_response_time": "3.5s",
+        "target_p95": "<2s"
+      },
+      "resource_utilization": {
+        "gpu_utilization": "75%",
+        "memory_usage": "12.8GB",
+        "cpu_usage": "45%",
+        "disk_io": "moderate"
+      }
+    },
+    "reliability": {
+      "uptime": {
+        "current_month": "99.8%",
+        "last_3_months": "99.7%",
+        "target": "99.5%"
+      },
+      "error_rates": {
+        "api_error_rate": "0.12%",
+        "benchmark_failure_rate": "2.3%",
+        "target_error_rate": "<1%"
+      },
+      "mttr": {
+        "average": "18 minutes",
+        "target": "<30 minutes"
+      }
+    },
+    "security": {
+      "vulnerability_scan": {
+        "last_scan": "2025-08-01T10:00:00Z",
+        "critical_vulnerabilities": 0,
+        "high_vulnerabilities": 1,
+        "medium_vulnerabilities": 3,
+        "low_vulnerabilities": 8
+      },
+      "dependency_analysis": {
+        "total_dependencies": 156,
+        "outdated_dependencies": 12,
+        "deprecated_dependencies": 2,
+        "security_advisories": 1
+      },
+      "compliance": {
+        "license_compliance": "100%",
+        "security_policies": "compliant",
+        "data_privacy": "compliant"
+      }
+    },
+    "community": {
+      "github_metrics": {
+        "stars": 245,
+        "forks": 42,
+        "watchers": 18,
+        "open_issues": 23,
+        "open_prs": 7,
+        "contributors": 8
+      },
+      "activity": {
+        "commits_last_month": 87,
+        "issues_opened_last_month": 12,
+        "issues_closed_last_month": 15,
+        "prs_merged_last_month": 9
+      },
+      "documentation": {
+        "pages": 45,
+        "last_updated": "2025-08-01",
+        "completeness": "85%"
+      }
+    },
+    "models": {
+      "supported_models": {
+        "total": 23,
+        "tier_1": 15,
+        "tier_2": 8,
+        "newly_added_this_month": 3
+      },
+      "model_performance": {
+        "average_fvd": 45.2,
+        "best_fvd": 28.1,
+        "worst_fvd": 78.9,
+        "average_latency": "8.5s"
+      },
+      "model_compatibility": {
+        "gpu_compatible": 23,
+        "cpu_compatible": 8,
+        "quantized_available": 12,
+        "onnx_available": 5
+      }
+    }
+  },
+  "targets": {
+    "short_term": {
+      "test_coverage": "90%",
+      "model_count": 50,
+      "api_response_time": "<200ms p95",
+      "documentation_completeness": "95%"
+    },
+    "medium_term": {
+      "model_count": 100,
+      "uptime": "99.9%",
+      "community_contributors": 25,
+      "github_stars": 1000
+    },
+    "long_term": {
+      "model_count": 300,
+      "enterprise_adoption": 10,
+      "academic_citations": 50,
+      "conference_presentations": 5
+    }
+  },
+  "tracking": {
+    "last_updated": "2025-08-01T10:00:00Z",
+    "update_frequency": "weekly",
+    "responsible_team": "Core Development Team",
+    "automation_level": "high"
+  },
+  "alerts": {
+    "performance_degradation": {
+      "threshold": "p95 > 2s",
+      "action": "investigate"
+    },
+    "error_rate_spike": {
+      "threshold": "> 1%",
+      "action": "immediate_investigation"
+    },
+    "security_vulnerabilities": {
+      "threshold": "critical > 0",
+      "action": "immediate_patch"
+    },
+    "test_coverage_drop": {
+      "threshold": "< 85%",
+      "action": "block_release"
+    }
+  },
+  "reporting": {
+    "weekly_report": {
+      "recipients": ["team@vid-benchmark.com"],
+      "format": "html",
+      "automated": true
+    },
+    "monthly_report": {
+      "recipients": ["stakeholders@vid-benchmark.com"],
+      "format": "pdf",
+      "includes_trends": true
+    },
+    "quarterly_review": {
+      "format": "presentation",
+      "includes_roadmap_updates": true,
+      "stakeholder_meeting": true
+    }
+  }
+}
