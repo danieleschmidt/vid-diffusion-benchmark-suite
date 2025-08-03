@@ -1,97 +1,39 @@
 {
   "name": "Video Diffusion Benchmark Suite",
-  "image": "mcr.microsoft.com/devcontainers/python:3.11-bullseye",
-  
+  "dockerComposeFile": "../docker-compose.dev.yml", 
+  "service": "dev-environment",
+  "workspaceFolder": "/workspace",
   "features": {
-    "ghcr.io/devcontainers/features/nvidia-cuda:1": {
-      "version": "12.1",
-      "cudnn": "8"
-    },
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
-      "version": "latest",
-      "enableNonRootDocker": "true"
-    },
-    "ghcr.io/devcontainers/features/git:1": {
-      "version": "latest"
-    }
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
-
   "customizations": {
     "vscode": {
       "extensions": [
         "ms-python.python",
         "ms-python.pylint",
-        "ms-python.black-formatter",
+        "ms-python.black-formatter", 
         "ms-python.isort",
-        "charliermarsh.ruff",
-        "ms-python.mypy-type-checker",
         "ms-toolsai.jupyter",
-        "ms-docker.docker",
-        "redhat.vscode-yaml",
-        "ms-vscode.test-adapter-converter",
-        "ms-python.pytest",
+        "ms-vscode.makefile-tools",
+        "ms-azuretools.vscode-docker",
         "GitHub.copilot",
-        "GitHub.vscode-pull-request-github",
-        "eamodio.gitlens",
-        "streetsidesoftware.code-spell-checker"
+        "ms-vscode.vscode-json",
+        "redhat.vscode-yaml",
+        "eamodio.gitlens"
       ],
       "settings": {
-        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.defaultInterpreterPath": "/opt/conda/bin/python",
         "python.linting.enabled": true,
-        "python.linting.pylintEnabled": false,
-        "python.linting.ruffEnabled": true,
+        "python.linting.pylintEnabled": true,
         "python.formatting.provider": "black",
-        "python.sortImports.provider": "isort",
-        "python.testing.pytestEnabled": true,
-        "python.testing.unittestEnabled": false,
         "editor.formatOnSave": true,
-        "editor.codeActionsOnSave": {
-          "source.organizeImports": true,
-          "source.fixAll.ruff": true
-        },
-        "files.exclude": {
-          "**/__pycache__": true,
-          "**/*.pyc": true,
-          "**/.*_cache": true
-        }
+        "python.testing.pytestEnabled": true
       }
     }
   },
-
-  "runArgs": [
-    "--gpus=all",
-    "--shm-size=8g"
-  ],
-
-  "mounts": [
-    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
-  ],
-
-  "postCreateCommand": "pip install -e '.[dev,docs,test]' && pre-commit install",
-
-  "remoteUser": "vscode",
-  
-  "forwardPorts": [8501, 8888, 3000, 9090, 3001],
-  "portsAttributes": {
-    "8501": {
-      "label": "Streamlit Dashboard",
-      "onAutoForward": "notify"
-    },
-    "8888": {
-      "label": "Jupyter Notebook", 
-      "onAutoForward": "ignore"
-    },
-    "9090": {
-      "label": "Prometheus",
-      "onAutoForward": "ignore"
-    },
-    "3000": {
-      "label": "Grafana",
-      "onAutoForward": "ignore" 
-    },
-    "3001": {
-      "label": "Alertmanager",
-      "onAutoForward": "ignore"
-    }
-  }
+  "forwardPorts": [8501, 8000, 3000, 9090, 6379],
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "remoteUser": "vscode"
 }

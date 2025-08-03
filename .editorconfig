@@ -3,15 +3,19 @@ root = true
 [*]
 charset = utf-8
 end_of_line = lf
-indent_style = space
-indent_size = 4
 insert_final_newline = true
 trim_trailing_whitespace = true
-
-[*.{yml,yaml}]
+indent_style = space
 indent_size = 2
 
-[*.{json,js,ts}]
+[*.py]
+indent_size = 4
+max_line_length = 88
+
+[*.{js,ts,jsx,tsx}]
+indent_size = 2
+
+[*.{json,yml,yaml}]
 indent_size = 2
 
 [*.md]
@@ -20,5 +24,17 @@ trim_trailing_whitespace = false
 [Makefile]
 indent_style = tab
 
-[*.py]
-max_line_length = 88
+[*.{sh,bash}]
+indent_size = 2
+
+[*.{sql,psql}]
+indent_size = 2
+
+[*.{html,css,scss}]
+indent_size = 2
+
+[*.toml]
+indent_size = 2
+
+[Dockerfile*]
+indent_size = 2
