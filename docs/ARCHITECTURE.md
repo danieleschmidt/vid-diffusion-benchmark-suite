@@ -2,7 +2,23 @@
 
 ## Overview
 
-The Video Diffusion Benchmark Suite is designed as a modular, scalable system for evaluating video generation models. The architecture follows clean separation of concerns with pluggable components.
+The Video Diffusion Benchmark Suite is designed as a modular, scalable system for evaluating video generation models across 300+ implementations. The architecture follows clean separation of concerns with pluggable components, enabling standardized comparison of latency, quality, and VRAM trade-offs.
+
+## Problem Statement
+
+The video generation field has exploded with 300+ models but lacks standardized evaluation. This creates:
+- **Incomparable Results**: Different evaluation protocols across papers
+- **Resource Uncertainty**: Unknown hardware requirements for deployment  
+- **Quality Confusion**: Inconsistent quality metrics and benchmarks
+- **Performance Gaps**: No unified efficiency measurements
+
+## Solution Architecture
+
+Our solution provides a unified benchmarking platform with:
+- **Standardized Evaluation**: Fixed protocols across all models
+- **Resource Profiling**: Comprehensive hardware requirement analysis
+- **Quality Metrics**: Unified FVD, IS, CLIP, and temporal consistency scoring
+- **Live Leaderboard**: Real-time model comparison and ranking
 
 ## System Architecture
 
