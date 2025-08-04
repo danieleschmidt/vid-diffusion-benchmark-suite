@@ -44,6 +44,11 @@ dependencies = [
     "tqdm",
     "click",
     "pyyaml",
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "sqlalchemy>=2.0.0",
+    "psycopg2-binary>=2.9.0",
+    "scipy>=1.11.0",
 ]
 
 [project.optional-dependencies]

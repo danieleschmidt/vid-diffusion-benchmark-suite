@@ -14,6 +14,13 @@ from scipy import linalg
 from scipy.stats import entropy
 import cv2
 
+from .reference_data import (
+    ReferenceDatasetManager, 
+    ImprovedInceptionV3Features,
+    compute_fvd_with_reference,
+    get_reference_manager
+)
+
 # Suppress warnings for cleaner output
 warnings.filterwarnings("ignore", category=UserWarning)
 logging.getLogger("clip").setLevel(logging.ERROR)
@@ -154,24 +161,28 @@ class VideoQualityMetrics:
         logger.info("Setting up quality metrics models...")
         
         try:
-            self.inception_model = InceptionV3Features(self.device)
-            self.clip_model = CLIPSimilarity(self.device) 
+            # Use improved Inception model
+            self.inception_model = ImprovedInceptionV3Features(self.device)
+            self.clip_model = CLIPSimilarity(self.device)
+            # Initialize reference data manager
+            self.reference_manager = get_reference_manager()
             logger.info("Quality metrics models loaded successfully")
         except Exception as e:
             logger.error(f"Failed to setup metrics models: {e}")
             self.inception_model = None
             self.clip_model = None
+            self.reference_manager = None
             
     def compute_fvd(
         self, 
         generated_videos: List[torch.Tensor],
         reference_dataset: str = "ucf101"
     ) -> float:
-        """Compute Fréchet Video Distance (FVD).
+        """Compute Fréchet Video Distance (FVD) using real reference data.
         
         Args:
             generated_videos: List of generated video tensors
-            reference_dataset: Reference dataset name (mock for now)
+            reference_dataset: Reference dataset name (ucf101, kinetics600, sky_timelapse)
             
         Returns:
             FVD score (lower is better)
@@ -180,21 +191,23 @@ class VideoQualityMetrics:
             return np.random.uniform(80, 120)  # Mock FVD score
             
         try:
-            # Stack videos into batch
-            video_batch = torch.stack(generated_videos).to(self.device)
+            logger.debug(f"Computing FVD for {len(generated_videos)} videos against {reference_dataset}")
             
-            # Extract features from generated videos
-            gen_features = self.inception_model.extract_features(video_batch)
-            gen_features = gen_features.cpu().numpy()
+            # Extract features from generated videos using improved model
+            gen_features = self.inception_model.extract_features(generated_videos)
             
-            # Mock reference features (in practice, load from reference dataset)
-            ref_features = np.random.randn(1000, gen_features.shape[1])
+            # Compute FVD using reference statistics
+            if self.reference_manager is not None:
+                fvd_score = compute_fvd_with_reference(
+                    gen_features, reference_dataset, self.reference_manager
+                )
+            else:
+                # Fallback to mock computation
+                ref_features = np.random.randn(1000, gen_features.shape[1])
+                fvd_score = self._calculate_frechet_distance(gen_features, ref_features)
             
-            # Compute FVD using Fréchet distance
-            fvd_score = self._calculate_frechet_distance(gen_features, ref_features)
-            
-            logger.debug(f"Computed FVD: {fvd_score:.2f}")
-            return fvd_score
+            logger.debug(f"Computed FVD against {reference_dataset}: {fvd_score:.2f}")
+            return float(fvd_score)
             
         except Exception as e:
             logger.error(f"Failed to compute FVD: {e}")

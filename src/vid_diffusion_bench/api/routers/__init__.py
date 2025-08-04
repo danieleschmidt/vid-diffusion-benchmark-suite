@@ -1,0 +1,1 @@
+"""API routers for the Video Diffusion Benchmark Suite."""
