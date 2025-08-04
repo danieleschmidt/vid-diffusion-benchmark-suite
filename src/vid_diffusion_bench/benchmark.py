@@ -197,8 +197,16 @@ class BenchmarkSuite:
             # Compute performance metrics
             self._compute_performance_metrics(result)
             
-            # Save results
+            # Save results to file
             self._save_results(result)
+            
+            # Save to database
+            try:
+                from .database.services import BenchmarkService
+                BenchmarkService.save_benchmark_result(result)
+                logger.info("Benchmark result saved to database")
+            except Exception as e:
+                logger.error(f"Failed to save to database: {e}")
             
         except Exception as e:
             logger.error(f"Failed to evaluate model {model_name}: {e}")
