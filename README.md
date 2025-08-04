@@ -66,7 +66,7 @@ redis>=5.0.0
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/vid-diffusion-benchmark-suite.git
+git clone https://github.com/danieleschmidt/vid-diffusion-benchmark-suite.git
 cd vid-diffusion-benchmark-suite
 
 # Run setup script
@@ -405,9 +405,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 ```bibtex
 @software{vid_diffusion_benchmark_suite,
   title={Video Diffusion Benchmark Suite: Standardized Evaluation for 300+ Models},
-  author={Your Name},
+  author={Daniel Schmidt},
   year={2025},
-  url={https://github.com/yourusername/vid-diffusion-benchmark-suite}
+  url={https://github.com/danieleschmidt/vid-diffusion-benchmark-suite}
 }
 ```
 
