@@ -1,0 +1,36 @@
+{
+  "model_evaluation": "Evaluación del Modelo",
+  "benchmark_complete": "Benchmark completado exitosamente",
+  "benchmark_started": "Benchmark iniciado",
+  "benchmark_failed": "Benchmark falló",
+  "processing_prompts": "Procesando {count} prompts",
+  "video_generation_started": "Iniciando generación de video",
+  "video_generation_complete": "Generación de video completada",
+  "video_generation_failed": "La generación de video falló para el prompt: {prompt}",
+  "model_loading": "Cargando modelo: {model_name}",
+  "model_loaded": "Modelo cargado exitosamente",
+  "model_optimization": "Optimizando modelo para rendimiento",
+  "results_saved": "Resultados guardados en: {path}",
+  "metrics_computed": "Métricas de calidad calculadas",
+  "performance_profiled": "Perfilado de rendimiento completado",
+  "memory_usage": "Uso de memoria: {memory_gb} GB",
+  "generation_time": "Tiempo de generación: {time_seconds} segundos",
+  "fps_achieved": "Logrado {fps} FPS",
+  "prompt_count": {
+    "one": "{count} prompt",
+    "other": "{count} prompts"
+  },
+  "frame_count": {
+    "one": "{count} cuadro",
+    "other": "{count} cuadros"
+  },
+  "model_count": {
+    "one": "{count} modelo",
+    "other": "{count} modelos"
+  },
+  "federated_session_started": "Sesión de benchmark federado iniciada",
+  "federated_session_joined": "Se unió a la sesión de benchmark federado",
+  "distributed_execution": "Ejecutando benchmark en clúster distribuido",
+  "streaming_benchmark": "Benchmark de streaming en tiempo real",
+  "optimization_complete": "Optimización de modelo completada"
+}

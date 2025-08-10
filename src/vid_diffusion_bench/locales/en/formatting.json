@@ -1,0 +1,53 @@
+{
+  "duration": {
+    "milliseconds": "{value}ms",
+    "seconds": "{value}s",
+    "minutes": "{value}min",
+    "hours": "{value}h",
+    "days": "{value}d"
+  },
+  "data_size": {
+    "b": "{value} B",
+    "kb": "{value} KB",
+    "mb": "{value} MB", 
+    "gb": "{value} GB",
+    "tb": "{value} TB"
+  },
+  "percentage": "{value}%",
+  "ratio": "{numerator}:{denominator}",
+  "range": "{min} - {max}",
+  "list_separator": ", ",
+  "list_final_separator": " and ",
+  "relative_time": {
+    "just_now": "just now",
+    "seconds_ago": {
+      "one": "{count} second ago",
+      "other": "{count} seconds ago"
+    },
+    "minutes_ago": {
+      "one": "{count} minute ago", 
+      "other": "{count} minutes ago"
+    },
+    "hours_ago": {
+      "one": "{count} hour ago",
+      "other": "{count} hours ago"
+    },
+    "days_ago": {
+      "one": "{count} day ago",
+      "other": "{count} days ago"
+    }
+  },
+  "quality_metrics": {
+    "fvd": "FVD: {value}",
+    "is": "IS: {value}",
+    "clip_score": "CLIP Score: {value}",
+    "temporal_consistency": "Temporal Consistency: {value}",
+    "overall_score": "Overall Score: {value}"
+  },
+  "performance_metrics": {
+    "latency": "Latency: {value}ms",
+    "throughput": "Throughput: {value} fps",
+    "memory_usage": "Memory: {value} GB",
+    "power_consumption": "Power: {value}W"
+  }
+}
