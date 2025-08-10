@@ -1,0 +1,36 @@
+{
+  "model_evaluation": "模型评估",
+  "benchmark_complete": "基准测试成功完成",
+  "benchmark_started": "基准测试已开始",
+  "benchmark_failed": "基准测试失败",
+  "processing_prompts": "正在处理 {count} 个提示",
+  "video_generation_started": "开始视频生成",
+  "video_generation_complete": "视频生成完成",
+  "video_generation_failed": "提示视频生成失败：{prompt}",
+  "model_loading": "正在加载模型：{model_name}",
+  "model_loaded": "模型加载成功",
+  "model_optimization": "正在优化模型性能",
+  "results_saved": "结果已保存到：{path}",
+  "metrics_computed": "质量指标计算完成",
+  "performance_profiled": "性能分析完成",
+  "memory_usage": "内存使用量：{memory_gb} GB",
+  "generation_time": "生成时间：{time_seconds} 秒",
+  "fps_achieved": "达到 {fps} FPS",
+  "prompt_count": {
+    "one": "{count} 个提示",
+    "other": "{count} 个提示"
+  },
+  "frame_count": {
+    "one": "{count} 帧",
+    "other": "{count} 帧"
+  },
+  "model_count": {
+    "one": "{count} 个模型",
+    "other": "{count} 个模型"
+  },
+  "federated_session_started": "联邦基准测试会话已开始",
+  "federated_session_joined": "已加入联邦基准测试会话",
+  "distributed_execution": "在分布式集群上执行基准测试",
+  "streaming_benchmark": "实时流媒体基准测试",
+  "optimization_complete": "模型优化完成"
+}
