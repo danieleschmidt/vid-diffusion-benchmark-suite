@@ -1,0 +1,94 @@
+# Multi-stage production Dockerfile for Video Diffusion Benchmark Suite
+FROM python:3.10-slim as builder
+
+# Install system dependencies for building
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    git \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY pyproject.toml requirements-dev.txt ./
+COPY src/ ./src/
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --user -e .
+
+# Production stage
+FROM python:3.10-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash --uid 1000 app
+
+# Set working directory
+WORKDIR /app
+
+# Copy Python packages from builder
+COPY --from=builder /root/.local /home/app/.local
+
+# Copy application code
+COPY src/ ./src/
+COPY scripts/ ./scripts/
+COPY deployment/healthcheck.py ./healthcheck.py
+
+# Create necessary directories
+RUN mkdir -p /app/data /app/cache /app/logs /app/model_cache \
+    && chown -R app:app /app
+
+# Switch to non-root user
+USER app
+
+# Add local Python packages to PATH
+ENV PATH=/home/app/.local/bin:$PATH
+ENV PYTHONPATH=/app/src
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Production environment settings
+ENV ENVIRONMENT=production
+ENV LOG_LEVEL=INFO
+ENV WORKERS=4
+ENV MAX_REQUESTS=1000
+ENV MAX_REQUESTS_JITTER=50
+ENV TIMEOUT=300
+ENV KEEPALIVE=2
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python healthcheck.py || exit 1
+
+# Expose ports
+EXPOSE 8000 8080
+
+# Use gunicorn for production with optimal settings
+CMD ["python", "-m", "gunicorn", \
+     "--bind", "0.0.0.0:8000", \
+     "--workers", "4", \
+     "--worker-class", "uvicorn.workers.UvicornWorker", \
+     "--max-requests", "1000", \
+     "--max-requests-jitter", "50", \
+     "--timeout", "300", \
+     "--keepalive", "2", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-", \
+     "--log-level", "info", \
+     "--preload", \
+     "vid_diffusion_bench.api.app:app"]
