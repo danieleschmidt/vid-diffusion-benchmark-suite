@@ -1,316 +1,233 @@
-# Deployment Guide
+# Deployment Guide - Video Diffusion Benchmark Suite
 
 ## Overview
 
-The Video Diffusion Benchmark Suite supports multiple deployment scenarios, from local development to production-scale cloud deployments.
+This guide covers production deployment of the Video Diffusion Benchmark Suite using containerization and Kubernetes orchestration.
 
-## Deployment Options
+## Prerequisites
 
-### 1. Local Development
+- Docker 24.0+
+- Kubernetes 1.25+
+- kubectl configured
+- GPU-enabled nodes (NVIDIA GPUs recommended)
+- 32GB+ RAM per node
+- 1TB+ storage for models and results
 
-#### Docker Compose (Recommended)
+## Quick Start
+
+### 1. Build Container
+
 ```bash
-# Clone and setup
-git clone https://github.com/yourusername/vid-diffusion-benchmark-suite.git
-cd vid-diffusion-benchmark-suite
+# Build production image
+docker build -t vid-diffusion-bench:latest .
 
-# Start all services
-docker-compose up -d
-
-# Access dashboard
-open http://localhost:8501
+# Build with specific tag
+docker build -t vid-diffusion-bench:v1.0.0 .
 ```
 
-#### Native Installation
+### 2. Run Locally
+
 ```bash
-# Create environment
-python -m venv venv
-source venv/bin/activate
+# Run basic container
+docker run -p 8000:8000 vid-diffusion-bench:latest
 
-# Install package
-pip install -e .
+# Run with GPU support
+docker run --gpus all -p 8000:8000 vid-diffusion-bench:latest
 
-# Run benchmark
-vid-bench evaluate --model svd-xt --prompt "A cat playing piano"
+# Run with environment variables
+docker run -e VID_BENCH_API_KEY=your_key \
+  -e VID_BENCH_ENV=production \
+  -p 8000:8000 vid-diffusion-bench:latest
 ```
 
-### 2. Cloud Deployment
+### 3. Docker Compose
 
-#### AWS ECS with GPU Support
-```yaml
-# aws-ecs-task-definition.json
-{
-  "family": "vid-diffusion-benchmark",
-  "taskRoleArn": "arn:aws:iam::ACCOUNT:role/VidBenchTaskRole",
-  "executionRoleArn": "arn:aws:iam::ACCOUNT:role/VidBenchExecutionRole",
-  "networkMode": "awsvpc",
-  "requiresCompatibilities": ["EC2"],
-  "cpu": "4096",
-  "memory": "32768",
-  "containerDefinitions": [
-    {
-      "name": "vid-bench",
-      "image": "your-registry/vid-diffusion-benchmark:latest",
-      "resourceRequirements": [
-        {
-          "type": "GPU",
-          "value": "1"
-        }
-      ],
-      "environment": [
-        {
-          "name": "CUDA_VISIBLE_DEVICES",
-          "value": "0"
-        }
-      ],
-      "portMappings": [
-        {
-          "containerPort": 8501,
-          "protocol": "tcp"
-        }
-      ]
-    }
-  ]
-}
+```bash
+# Start full stack
+docker-compose -f docker-compose.prod.yml up -d
+
+# Scale workers
+docker-compose -f docker-compose.prod.yml up -d --scale worker=3
 ```
 
-#### Google Cloud Run with GPU
+## Kubernetes Deployment
+
+### 1. Deploy Base Infrastructure
+
+```bash
+# Apply namespace
+kubectl apply -f k8s/namespace.yaml
+
+# Deploy PostgreSQL
+kubectl apply -f k8s/postgres.yaml
+
+# Deploy Redis
+kubectl apply -f k8s/redis.yaml
+
+# Deploy monitoring
+kubectl apply -f k8s/monitoring/
+```
+
+### 2. Deploy Application
+
+```bash
+# Deploy main application
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+
+# Deploy workers
+kubectl apply -f k8s/worker-deployment.yaml
+
+# Setup auto-scaling
+kubectl apply -f k8s/hpa.yaml
+```
+
+### 3. Configure Ingress
+
+```bash
+# Deploy ingress controller (if needed)
+kubectl apply -f k8s/ingress-controller.yaml
+
+# Configure ingress
+kubectl apply -f k8s/ingress.yaml
+```
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `VID_BENCH_ENV` | Environment (dev/staging/prod) | dev | No |
+| `VID_BENCH_API_KEY` | Master API key | None | Yes |
+| `VID_BENCH_JWT_SECRET` | JWT signing secret | Random | No |
+| `DATABASE_URL` | PostgreSQL connection string | None | Yes |
+| `REDIS_URL` | Redis connection string | redis://localhost:6379 | No |
+| `PROMETHEUS_URL` | Prometheus endpoint | None | No |
+| `LOG_LEVEL` | Logging level | INFO | No |
+
+### Resource Configuration
+
 ```yaml
-# gcp-cloud-run.yaml
-apiVersion: serving.knative.dev/v1
-kind: Service
+# Recommended resource limits
+resources:
+  requests:
+    cpu: "2000m"
+    memory: "8Gi"
+    nvidia.com/gpu: 1
+  limits:
+    cpu: "4000m" 
+    memory: "16Gi"
+    nvidia.com/gpu: 1
+```
+
+## Security
+
+### TLS Configuration
+
+```yaml
+# TLS certificate
+apiVersion: v1
+kind: Secret
 metadata:
-  name: vid-diffusion-benchmark
-  annotations:
-    run.googleapis.com/gpu-type: nvidia-tesla-t4
-    run.googleapis.com/gpu-count: "1"
-spec:
-  template:
-    metadata:
-      annotations:
-        autoscaling.knative.dev/maxScale: "5"
-        run.googleapis.com/cpu: "4"
-        run.googleapis.com/memory: "16Gi"
-    spec:
-      containers:
-      - image: gcr.io/PROJECT_ID/vid-diffusion-benchmark:latest
-        ports:
-        - containerPort: 8501
-        env:
-        - name: PORT
-          value: "8501"
-        resources:
-          limits:
-            nvidia.com/gpu: 1
+  name: vid-bench-tls
+  namespace: vid-diffusion-bench
+type: kubernetes.io/tls
+data:
+  tls.crt: <base64-encoded-cert>
+  tls.key: <base64-encoded-key>
 ```
 
-#### Azure Container Instances
+### Network Policies
+
 ```yaml
-# azure-aci.yaml
-apiVersion: 2021-03-01
-location: eastus
-name: vid-diffusion-benchmark
-properties:
-  containers:
-  - name: vid-bench
-    properties:
-      image: your-registry.azurecr.io/vid-diffusion-benchmark:latest
-      resources:
-        requests:
-          cpu: 4
-          memoryInGb: 32
-          gpu:
-            count: 1
-            sku: K80
-      ports:
-      - protocol: TCP
-        port: 8501
-  osType: Linux
-  restartPolicy: Always
-  ipAddress:
-    type: Public
+# Restrict network access
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vid-bench-network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: vid-diffusion-bench
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
     ports:
     - protocol: TCP
-      port: 8501
+      port: 8000
 ```
 
-### 3. Kubernetes Deployment
+## Monitoring
 
-#### Namespace and RBAC
+### Prometheus Configuration
+
 ```yaml
-# k8s/namespace.yaml
-apiVersion: v1
-kind: Namespace
+# ServiceMonitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
 metadata:
-  name: vid-diffusion-benchmark
-
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: vid-bench-sa
-  namespace: vid-diffusion-benchmark
-```
-
-#### ConfigMap for Configuration
-```yaml
-# k8s/configmap.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: vid-bench-config
-  namespace: vid-diffusion-benchmark
-data:
-  config.yaml: |
-    models:
-      cache_dir: /app/models
-      default_precision: fp16
-    benchmark:
-      batch_size: 1
-      num_frames: 16
-      output_dir: /app/results
-    dashboard:
-      host: 0.0.0.0
-      port: 8501
-```
-
-#### GPU Node Pool Deployment
-```yaml
-# k8s/deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: vid-diffusion-benchmark
-  namespace: vid-diffusion-benchmark
+  name: vid-bench-metrics
 spec:
-  replicas: 2
   selector:
     matchLabels:
-      app: vid-diffusion-benchmark
-  template:
-    metadata:
-      labels:
-        app: vid-diffusion-benchmark
-    spec:
-      serviceAccountName: vid-bench-sa
-      nodeSelector:
-        accelerator: nvidia-tesla-v100
-      containers:
-      - name: vid-bench
-        image: your-registry/vid-diffusion-benchmark:latest
-        ports:
-        - containerPort: 8501
-        resources:
-          requests:
-            cpu: 4
-            memory: 16Gi
-            nvidia.com/gpu: 1
-          limits:
-            cpu: 8
-            memory: 32Gi
-            nvidia.com/gpu: 1
-        env:
-        - name: CUDA_VISIBLE_DEVICES
-          value: "0"
-        volumeMounts:
-        - name: config
-          mountPath: /app/config
-        - name: results
-          mountPath: /app/results
-        - name: models
-          mountPath: /app/models
-      volumes:
-      - name: config
-        configMap:
-          name: vid-bench-config
-      - name: results
-        persistentVolumeClaim:
-          claimName: vid-bench-results
-      - name: models
-        persistentVolumeClaim:
-          claimName: vid-bench-models
+      app: vid-diffusion-bench
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
 ```
 
-#### Services and Ingress
-```yaml
-# k8s/service.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: vid-diffusion-benchmark
-  namespace: vid-diffusion-benchmark
-spec:
-  selector:
-    app: vid-diffusion-benchmark
-  ports:
-  - port: 80
-    targetPort: 8501
-  type: ClusterIP
+### Grafana Dashboards
 
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: vid-diffusion-benchmark
-  namespace: vid-diffusion-benchmark
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-spec:
-  tls:
-  - hosts:
-    - vid-bench.yourdomain.com
-    secretName: vid-bench-tls
+Import pre-built dashboards:
+- System metrics (CPU, Memory, GPU)
+- Application metrics (Request rate, Latency)
+- Business metrics (Benchmark success rate)
+
+### Alerting Rules
+
+```yaml
+# Critical alerts
+groups:
+- name: vid-diffusion-bench
   rules:
-  - host: vid-bench.yourdomain.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: vid-diffusion-benchmark
-            port:
-              number: 80
+  - alert: HighErrorRate
+    expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: High error rate detected
+  
+  - alert: HighMemoryUsage
+    expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.9
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: High memory usage
 ```
 
-### 4. Production Setup
+## Scaling
 
-#### Environment Variables
-```bash
-# Production environment variables
-export CUDA_VISIBLE_DEVICES=0,1,2,3
-export TORCH_HOME=/app/models/.torch
-export WANDB_API_KEY=your_wandb_key
-export REDIS_URL=redis://redis-cluster:6379
-export DATABASE_URL=postgresql://user:pass@db:5432/vidbench
-export SECRET_KEY=your-secret-key
-export ENVIRONMENT=production
-```
+### Horizontal Pod Autoscaling
 
-#### Resource Requirements
-
-| Component | CPU | Memory | GPU | Storage |
-|-----------|-----|--------|-----|---------|
-| Benchmark Engine | 8 cores | 32GB | 1x V100 | 100GB SSD |
-| Dashboard | 2 cores | 4GB | - | 10GB |
-| Redis | 2 cores | 8GB | - | 50GB |
-| Prometheus | 4 cores | 16GB | - | 200GB |
-| Grafana | 2 cores | 4GB | - | 10GB |
-
-#### High Availability Setup
 ```yaml
-# k8s/hpa.yaml
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: vid-diffusion-benchmark-hpa
-  namespace: vid-diffusion-benchmark
+  name: vid-bench-hpa
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: vid-diffusion-benchmark
+    name: vid-diffusion-bench
   minReplicas: 2
   maxReplicas: 10
   metrics:
@@ -328,208 +245,182 @@ spec:
         averageUtilization: 80
 ```
 
-## Monitoring and Observability
+### Vertical Pod Autoscaling
 
-### Prometheus Configuration
 ```yaml
-# monitoring/prometheus.yml
-global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
-
-scrape_configs:
-- job_name: 'vid-diffusion-benchmark'
-  static_configs:
-  - targets: ['vid-bench:8501']
-  metrics_path: '/metrics'
-  scrape_interval: 30s
-
-- job_name: 'nvidia-gpu'
-  static_configs:
-  - targets: ['nvidia-dcgm-exporter:9400']
-```
-
-### Grafana Dashboards
-```json
-{
-  "dashboard": {
-    "title": "Video Diffusion Benchmark",
-    "panels": [
-      {
-        "title": "Benchmark Throughput",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "rate(benchmark_completions_total[5m])",
-            "legendFormat": "Benchmarks/sec"
-          }
-        ]
-      },
-      {
-        "title": "GPU Utilization",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "nvidia_gpu_utilization_gpu",
-            "legendFormat": "GPU {{gpu}}"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-### Logging Configuration
-```yaml
-# logging/fluentd.conf
-<source>
-  @type forward
-  port 24224
-  bind 0.0.0.0
-</source>
-
-<match vid-bench.**>
-  @type elasticsearch
-  host elasticsearch
-  port 9200
-  index_name vid-benchmark-logs
-  type_name _doc
-  
-  <buffer>
-    @type file
-    path /var/log/fluentd-buffers/vid-bench.buffer
-    flush_mode interval
-    flush_interval 10s
-  </buffer>
-</match>
-```
-
-## Security Considerations
-
-### Network Security
-```yaml
-# k8s/network-policy.yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
 metadata:
-  name: vid-bench-network-policy
-  namespace: vid-diffusion-benchmark
+  name: vid-bench-vpa
 spec:
-  podSelector:
-    matchLabels:
-      app: vid-diffusion-benchmark
-  policyTypes:
-  - Ingress
-  - Egress
-  ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          name: ingress-nginx
-    ports:
-    - protocol: TCP
-      port: 8501
-  egress:
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          name: kube-system
-    ports:
-    - protocol: TCP
-      port: 53
-    - protocol: UDP
-      port: 53
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: vid-diffusion-bench
+  updatePolicy:
+    updateMode: "Auto"
 ```
 
-### Secret Management
+## Backup and Recovery
+
+### Database Backup
+
 ```bash
-# Create secrets
-kubectl create secret generic vid-bench-secrets \
-  --from-literal=wandb-key=your_wandb_key \
-  --from-literal=db-password=secure_password \
-  --namespace=vid-diffusion-benchmark
-
-# Reference in deployment
-env:
-- name: WANDB_API_KEY
-  valueFrom:
-    secretKeyRef:
-      name: vid-bench-secrets
-      key: wandb-key
-```
-
-## Backup and Disaster Recovery
-
-### Data Backup Strategy
-```bash
+# Automated backup script
 #!/bin/bash
-# backup-script.sh
-
-# Backup results database
-pg_dump -h $DB_HOST -U $DB_USER vid_benchmark > /backups/db_$(date +%Y%m%d).sql
-
-# Backup model weights
-rsync -av /app/models/ /backups/models/
-
-# Backup configuration
-kubectl get configmap vid-bench-config -o yaml > /backups/config_$(date +%Y%m%d).yaml
+kubectl exec -n vid-diffusion-bench postgres-0 -- \
+  pg_dump -U postgres vid_bench > backup_$(date +%Y%m%d_%H%M%S).sql
 
 # Upload to cloud storage
-aws s3 sync /backups/ s3://vid-bench-backups/$(date +%Y%m%d)/
+aws s3 cp backup_*.sql s3://vid-bench-backups/
 ```
 
-### Disaster Recovery Plan
-1. **Infrastructure**: Use Infrastructure as Code (Terraform/CloudFormation)
-2. **Data**: Automated daily backups to cloud storage
-3. **Monitoring**: Health checks and automated failover
-4. **Documentation**: Runbooks for common failure scenarios
+### Disaster Recovery
 
-## Performance Optimization
+1. **RTO Target**: 30 minutes
+2. **RPO Target**: 1 hour
+3. **Backup Schedule**: Daily full, hourly incremental
+4. **Multi-region replication** for critical data
 
-### GPU Memory Optimization
-```python
-# config/optimization.py
-OPTIMIZATION_SETTINGS = {
-    'batch_size': 1,  # Reduce for memory constraints
-    'precision': 'fp16',  # Use mixed precision
-    'gradient_checkpointing': True,
-    'model_parallel': True,  # For multi-GPU setups
-    'memory_efficient_attention': True
-}
-```
+## Performance Tuning
 
-### Caching Strategy
+### GPU Optimization
+
 ```yaml
-# Redis configuration for caching
-redis:
-  maxmemory: 8gb
-  maxmemory-policy: allkeys-lru
-  save: "900 1"  # Save after 900 sec if at least 1 key changed
+# GPU node selector
+nodeSelector:
+  accelerator: nvidia-tesla-v100
+
+# GPU resource sharing
+resources:
+  limits:
+    nvidia.com/gpu: 1
+  requests:
+    nvidia.com/gpu: 1
 ```
 
-### Load Balancing
-```nginx
-# nginx.conf
-upstream vid_bench_backend {
-    least_conn;
-    server vid-bench-1:8501 max_fails=3 fail_timeout=30s;
-    server vid-bench-2:8501 max_fails=3 fail_timeout=30s;
-    server vid-bench-3:8501 max_fails=3 fail_timeout=30s;
-}
+### Memory Optimization
 
-server {
-    listen 80;
-    server_name vid-bench.yourdomain.com;
+```yaml
+# Memory-optimized settings
+env:
+- name: PYTORCH_CUDA_ALLOC_CONF
+  value: "max_split_size_mb:512"
+- name: OMP_NUM_THREADS
+  value: "4"
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Out of Memory**
+   ```bash
+   # Check memory usage
+   kubectl top pods -n vid-diffusion-bench
+   
+   # Scale down workers
+   kubectl scale deployment vid-bench-worker --replicas=1
+   ```
+
+2. **GPU Not Available**
+   ```bash
+   # Check GPU resources
+   kubectl describe nodes | grep nvidia.com/gpu
+   
+   # Verify GPU driver
+   kubectl exec -it <pod> -- nvidia-smi
+   ```
+
+3. **Database Connection Failed**
+   ```bash
+   # Check database pod
+   kubectl logs -n vid-diffusion-bench postgres-0
+   
+   # Test connection
+   kubectl exec -it <app-pod> -- pg_isready -h postgres
+   ```
+
+### Logs and Debugging
+
+```bash
+# Application logs
+kubectl logs -f deployment/vid-diffusion-bench
+
+# Worker logs
+kubectl logs -f deployment/vid-bench-worker
+
+# System logs
+kubectl logs -f daemonset/gpu-driver-installer
+```
+
+## Health Checks
+
+### Liveness Probe
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+```
+
+### Readiness Probe
+
+```yaml
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 8000
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+```
+
+## CI/CD Integration
+
+### GitHub Actions Deployment
+
+```yaml
+name: Deploy to Production
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
     
-    location / {
-        proxy_pass http://vid_bench_backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_connect_timeout 300s;
-        proxy_read_timeout 300s;
-    }
-}
+    - name: Build and push Docker image
+      run: |
+        docker build -t ${{ secrets.REGISTRY }}/vid-diffusion-bench:${{ github.ref_name }} .
+        docker push ${{ secrets.REGISTRY }}/vid-diffusion-bench:${{ github.ref_name }}
+    
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl set image deployment/vid-diffusion-bench \
+          app=${{ secrets.REGISTRY }}/vid-diffusion-bench:${{ github.ref_name }}
 ```
 
-This deployment guide covers various scenarios from development to production, ensuring scalable and robust deployment of the Video Diffusion Benchmark Suite.
+## Cost Optimization
+
+### Resource Right-sizing
+
+- Monitor actual resource usage
+- Adjust requests/limits based on metrics
+- Use spot instances for non-critical workloads
+
+### Auto-scaling Policies
+
+- Scale down during low-usage periods
+- Use cluster autoscaler for node management
+- Implement budget alerts
+
+This deployment guide ensures robust, scalable, and secure production deployment of the Video Diffusion Benchmark Suite.

@@ -1073,3 +1073,271 @@ class ExperimentalFramework:
             all_parameters.update(result.config.parameters)
         
         return all_parameters
+    
+    def run_ablation_study(
+        self,
+        base_config: ExperimentConfig,
+        parameter_variations: Dict[str, List[Any]],
+        evaluation_function: Callable
+    ) -> Dict[str, ExperimentResult]:
+        """Run ablation study across parameter variations.
+        
+        Args:
+            base_config: Base experiment configuration
+            parameter_variations: Dict of parameter names to lists of values
+            evaluation_function: Function to evaluate models
+            
+        Returns:
+            Results for each parameter variation
+        """
+        logger.info(f"Running ablation study with {len(parameter_variations)} parameter variations")
+        
+        ablation_results = {}
+        
+        # Run baseline
+        baseline_result = self.run_experiment(base_config, evaluation_function)
+        ablation_results['baseline'] = baseline_result
+        
+        # Run variations
+        for param_name, values in parameter_variations.items():
+            for value in values:
+                # Create variation config
+                variation_config = ExperimentConfig(
+                    experiment_id=f"{base_config.experiment_id}_{param_name}_{value}",
+                    name=f"{base_config.name}_ablation_{param_name}_{value}",
+                    description=f"Ablation: {param_name} = {value}",
+                    models=base_config.models,
+                    metrics=base_config.metrics,
+                    prompts=base_config.prompts,
+                    seeds=base_config.seeds,
+                    parameters={**base_config.parameters, param_name: value}
+                )
+                
+                # Run experiment
+                variation_result = self.run_experiment(variation_config, evaluation_function)
+                ablation_results[f"{param_name}_{value}"] = variation_result
+        
+        # Analyze ablation results
+        ablation_analysis = self._analyze_ablation_results(ablation_results)
+        
+        # Save ablation study
+        ablation_dir = self.output_dir / "ablation_studies" / base_config.experiment_id
+        ablation_dir.mkdir(parents=True, exist_ok=True)
+        
+        with open(ablation_dir / "ablation_analysis.json", 'w') as f:
+            json.dump(ablation_analysis, f, indent=2, default=str)
+        
+        logger.info(f"Ablation study completed and saved to {ablation_dir}")
+        
+        return ablation_results
+    
+    def _analyze_ablation_results(self, results: Dict[str, ExperimentResult]) -> Dict[str, Any]:
+        """Analyze ablation study results."""
+        baseline = results.get('baseline')
+        if not baseline:
+            return {'error': 'No baseline result found'}
+        
+        analysis = {
+            'baseline_performance': {},
+            'parameter_effects': {},
+            'best_variations': {},
+            'recommendations': []
+        }
+        
+        # Extract baseline metrics
+        for model in baseline.config.models:
+            if model in baseline.results:
+                analysis['baseline_performance'][model] = {
+                    metric: np.mean(scores) for metric, scores in baseline.results[model].items()
+                }
+        
+        # Analyze parameter effects
+        for variation_name, result in results.items():
+            if variation_name == 'baseline':
+                continue
+                
+            param_name = variation_name.split('_')[0]
+            if param_name not in analysis['parameter_effects']:
+                analysis['parameter_effects'][param_name] = []
+            
+            # Calculate improvement over baseline
+            for model in result.config.models:
+                if model in result.results and model in baseline.results:
+                    improvements = {}
+                    for metric in result.results[model]:
+                        if metric in baseline.results[model]:
+                            baseline_score = np.mean(baseline.results[model][metric])
+                            variation_score = np.mean(result.results[model][metric])
+                            improvement = (variation_score - baseline_score) / baseline_score
+                            improvements[metric] = improvement
+                    
+                    analysis['parameter_effects'][param_name].append({
+                        'variation': variation_name,
+                        'model': model,
+                        'improvements': improvements
+                    })
+        
+        # Find best variations
+        for param_name, effects in analysis['parameter_effects'].items():
+            best_improvement = -float('inf')
+            best_variation = None
+            
+            for effect in effects:
+                avg_improvement = np.mean(list(effect['improvements'].values()))
+                if avg_improvement > best_improvement:
+                    best_improvement = avg_improvement
+                    best_variation = effect['variation']
+            
+            analysis['best_variations'][param_name] = {
+                'variation': best_variation,
+                'improvement': best_improvement
+            }
+        
+        # Generate recommendations
+        for param_name, best in analysis['best_variations'].items():
+            if best['improvement'] > 0.05:  # 5% improvement threshold
+                analysis['recommendations'].append(
+                    f"Consider using {best['variation']} for {best['improvement']:.2%} improvement"
+                )
+        
+        return analysis
+    
+    def run_hyperparameter_optimization(
+        self,
+        base_config: ExperimentConfig,
+        parameter_space: Dict[str, List[Any]],
+        evaluation_function: Callable,
+        optimization_metric: str = 'overall_score',
+        n_trials: int = 20
+    ) -> Dict[str, Any]:
+        """Run hyperparameter optimization using grid search.
+        
+        Args:
+            base_config: Base experiment configuration
+            parameter_space: Dict of parameter names to lists of values
+            evaluation_function: Function to evaluate models
+            optimization_metric: Metric to optimize
+            n_trials: Number of trials to run
+            
+        Returns:
+            Optimization results with best parameters
+        """
+        logger.info(f"Running hyperparameter optimization with {n_trials} trials")
+        
+        import itertools
+        
+        # Generate parameter combinations
+        param_names = list(parameter_space.keys())
+        param_values = list(parameter_space.values())
+        combinations = list(itertools.product(*param_values))
+        
+        # Limit to n_trials
+        if len(combinations) > n_trials:
+            import random
+            combinations = random.sample(combinations, n_trials)
+        
+        optimization_results = []
+        
+        for i, combination in enumerate(combinations):
+            logger.info(f"Running trial {i+1}/{len(combinations)}")
+            
+            # Create parameter dict
+            trial_params = dict(zip(param_names, combination))
+            
+            # Create trial config
+            trial_config = ExperimentConfig(
+                experiment_id=f"{base_config.experiment_id}_trial_{i}",
+                name=f"{base_config.name}_optimization_trial_{i}",
+                description=f"Hyperparameter optimization trial {i}",
+                models=base_config.models,
+                metrics=base_config.metrics,
+                prompts=base_config.prompts,
+                seeds=base_config.seeds[:2],  # Use fewer seeds for speed
+                parameters={**base_config.parameters, **trial_params}
+            )
+            
+            # Run trial
+            try:
+                trial_result = self.run_experiment(
+                    trial_config, evaluation_function, validate_reproducibility=False
+                )
+                
+                # Extract optimization metric
+                metric_scores = []
+                for model in trial_result.config.models:
+                    if model in trial_result.results and optimization_metric in trial_result.results[model]:
+                        metric_scores.extend(trial_result.results[model][optimization_metric])
+                
+                avg_metric = np.mean(metric_scores) if metric_scores else 0.0
+                
+                optimization_results.append({
+                    'trial_id': i,
+                    'parameters': trial_params,
+                    'metric_score': avg_metric,
+                    'result': trial_result
+                })
+                
+            except Exception as e:
+                logger.error(f"Trial {i} failed: {e}")
+                optimization_results.append({
+                    'trial_id': i,
+                    'parameters': trial_params,
+                    'metric_score': 0.0,
+                    'error': str(e)
+                })
+        
+        # Find best parameters
+        best_trial = max(optimization_results, key=lambda x: x['metric_score'])
+        
+        optimization_analysis = {
+            'best_parameters': best_trial['parameters'],
+            'best_score': best_trial['metric_score'],
+            'best_trial_id': best_trial['trial_id'],
+            'all_trials': optimization_results,
+            'parameter_importance': self._analyze_parameter_importance(
+                optimization_results, param_names
+            )
+        }
+        
+        # Save optimization results
+        opt_dir = self.output_dir / "hyperparameter_optimization" / base_config.experiment_id
+        opt_dir.mkdir(parents=True, exist_ok=True)
+        
+        with open(opt_dir / "optimization_results.json", 'w') as f:
+            json.dump(optimization_analysis, f, indent=2, default=str)
+        
+        logger.info(f"Hyperparameter optimization completed. Best score: {best_trial['metric_score']:.4f}")
+        
+        return optimization_analysis
+    
+    def _analyze_parameter_importance(
+        self, 
+        trials: List[Dict[str, Any]], 
+        param_names: List[str]
+    ) -> Dict[str, float]:
+        """Analyze parameter importance from optimization trials."""
+        importance = {}
+        
+        for param_name in param_names:
+            # Group trials by parameter value
+            param_groups = {}
+            for trial in trials:
+                if 'error' not in trial:
+                    param_value = trial['parameters'][param_name]
+                    if param_value not in param_groups:
+                        param_groups[param_value] = []
+                    param_groups[param_value].append(trial['metric_score'])
+            
+            # Calculate variance between groups
+            if len(param_groups) > 1:
+                group_means = [np.mean(scores) for scores in param_groups.values()]
+                importance[param_name] = np.var(group_means)
+            else:
+                importance[param_name] = 0.0
+        
+        # Normalize importance scores
+        total_importance = sum(importance.values())
+        if total_importance > 0:
+            importance = {k: v / total_importance for k, v in importance.items()}
+        
+        return importance
