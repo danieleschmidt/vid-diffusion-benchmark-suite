@@ -14,7 +14,7 @@ Research contributions:
 
 import torch
 import numpy as np
-import random
+import secrets
 import json
 import logging
 import hashlib
@@ -180,7 +180,7 @@ class ReproducibilityManager:
     def generate_experiment_seeds(self, base_seed: int, num_seeds: int) -> List[int]:
         """Generate deterministic sequence of seeds for experiments."""
         with self.deterministic_context(base_seed):
-            seeds = [random.randint(1, 999999) for _ in range(num_seeds)]
+            seeds = [secrets.SystemRandom().randint(1, 999999) for _ in range(num_seeds)]
         return seeds
     
     def validate_reproducibility(
@@ -554,6 +554,7 @@ class ExperimentalFramework:
         
         try:
             with open(result_path, 'rb') as f:
+        # SECURITY: pickle.loads() can execute arbitrary code. Only use with trusted data.
                 result = pickle.load(f)
             logger.info(f"Loaded experiment result: {experiment_id}")
             return result
@@ -1233,8 +1234,8 @@ class ExperimentalFramework:
         
         # Limit to n_trials
         if len(combinations) > n_trials:
-            import random
-            combinations = random.sample(combinations, n_trials)
+            import secrets
+            combinations = secrets.SystemRandom().sample(combinations, n_trials)
         
         optimization_results = []
         

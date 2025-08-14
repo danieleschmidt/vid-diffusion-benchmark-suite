@@ -516,8 +516,8 @@ class StatisticalSignificanceAnalyzer:
             n1, n2 = len(scores_a), len(scores_b)
             
             for _ in range(n_bootstrap):
-                resample_a = np.random.choice(scores_a, size=n1, replace=True)
-                resample_b = np.random.choice(scores_b, size=n2, replace=True)
+                resample_a = np.secrets.SystemRandom().choice(scores_a, size=n1, replace=True)
+                resample_b = np.secrets.SystemRandom().choice(scores_b, size=n2, replace=True)
                 bootstrap_diff = np.mean(resample_a) - np.mean(resample_b)
                 bootstrap_diffs.append(bootstrap_diff)
             
@@ -613,8 +613,8 @@ class StatisticalSignificanceAnalyzer:
             n1, n2 = len(scores_a), len(scores_b)
             
             for _ in range(n_bootstrap):
-                resample_a = np.random.choice(scores_a, size=n1, replace=True)
-                resample_b = np.random.choice(scores_b, size=n2, replace=True)
+                resample_a = np.secrets.SystemRandom().choice(scores_a, size=n1, replace=True)
+                resample_b = np.secrets.SystemRandom().choice(scores_b, size=n2, replace=True)
                 diff = np.median(resample_a) - np.median(resample_b)
                 bootstrap_diffs.append(diff)
             
@@ -991,7 +991,7 @@ class BenchmarkStatistics:
         # Median confidence interval (bootstrap)
         bootstrap_medians = []
         for _ in range(1000):
-            bootstrap_sample = np.random.choice(scores, size=n, replace=True)
+            bootstrap_sample = np.secrets.SystemRandom().choice(scores, size=n, replace=True)
             bootstrap_medians.append(np.median(bootstrap_sample))
         
         median_ci = np.percentile(bootstrap_medians, [100*alpha/2, 100*(1-alpha/2)])

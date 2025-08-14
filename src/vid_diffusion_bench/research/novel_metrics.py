@@ -368,7 +368,7 @@ class CrossModalAlignmentAnalyzer:
     ) -> Dict[str, float]:
         """Analyze semantic coherence between prompt and video."""
         if self.text_encoder is None:
-            return {'semantic_coherence': np.random.uniform(0.6, 0.9)}
+            return {'semantic_coherence': np.secrets.SystemRandom().uniform(0.6, 0.9)}
         
         try:
             # Advanced text encoding
@@ -400,7 +400,7 @@ class CrossModalAlignmentAnalyzer:
                 
         except Exception as e:
             logger.error(f"Semantic coherence analysis failed: {e}")
-            semantic_coherence = np.random.uniform(0.6, 0.9)
+            semantic_coherence = np.secrets.SystemRandom().uniform(0.6, 0.9)
         
         return {'semantic_coherence': semantic_coherence}
     
@@ -418,14 +418,14 @@ class CrossModalAlignmentAnalyzer:
     def _mock_alignment_scores(self) -> Dict[str, float]:
         """Generate mock alignment scores for testing."""
         return {
-            'mean_alignment': np.random.uniform(0.6, 0.9),
-            'min_alignment': np.random.uniform(0.4, 0.7),
-            'max_alignment': np.random.uniform(0.8, 0.95),
-            'alignment_std': np.random.uniform(0.05, 0.15),
-            'temporal_consistency': np.random.uniform(0.7, 0.95),
-            'alignment_trend': np.random.uniform(-0.2, 0.2),
-            'peak_timing': np.random.uniform(0.3, 0.7),
-            'semantic_coherence': np.random.uniform(0.6, 0.9)
+            'mean_alignment': np.secrets.SystemRandom().uniform(0.6, 0.9),
+            'min_alignment': np.secrets.SystemRandom().uniform(0.4, 0.7),
+            'max_alignment': np.secrets.SystemRandom().uniform(0.8, 0.95),
+            'alignment_std': np.secrets.SystemRandom().uniform(0.05, 0.15),
+            'temporal_consistency': np.secrets.SystemRandom().uniform(0.7, 0.95),
+            'alignment_trend': np.secrets.SystemRandom().uniform(-0.2, 0.2),
+            'peak_timing': np.secrets.SystemRandom().uniform(0.3, 0.7),
+            'semantic_coherence': np.secrets.SystemRandom().uniform(0.6, 0.9)
         }
 
 

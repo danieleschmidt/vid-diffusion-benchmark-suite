@@ -364,8 +364,8 @@ class NodeManager:
         logger.info(f"Executing model evaluation: {model_name} with {len(prompts)} prompts")
         
         # Simulate model evaluation (replace with actual implementation)
-        import random
-        time.sleep(random.uniform(10, 30))  # Simulate processing time
+        import secrets
+        time.sleep(secrets.SystemRandom().uniform(10, 30))  # Simulate processing time
         
         # Mock results
         results = {
@@ -373,8 +373,8 @@ class NodeManager:
             "evaluations": [],
             "summary": {
                 "total_prompts": len(prompts),
-                "success_rate": random.uniform(0.8, 1.0),
-                "average_time": random.uniform(5, 15)
+                "success_rate": secrets.SystemRandom().uniform(0.8, 1.0),
+                "average_time": secrets.SystemRandom().uniform(5, 15)
             }
         }
         
@@ -382,12 +382,12 @@ class NodeManager:
             results["evaluations"].append({
                 "prompt_idx": i,
                 "prompt": prompt,
-                "success": random.random() > 0.1,
-                "generation_time": random.uniform(3, 20),
+                "success": secrets.SystemRandom().random() > 0.1,
+                "generation_time": secrets.SystemRandom().uniform(3, 20),
                 "metrics": {
-                    "fvd": random.uniform(80, 120),
-                    "is": random.uniform(25, 45),
-                    "clip_sim": random.uniform(0.2, 0.4)
+                    "fvd": secrets.SystemRandom().uniform(80, 120),
+                    "is": secrets.SystemRandom().uniform(25, 45),
+                    "clip_sim": secrets.SystemRandom().uniform(0.2, 0.4)
                 }
             })
         
@@ -409,8 +409,8 @@ class NodeManager:
         logger.info(f"Computing metrics for {len(video_paths)} videos")
         
         # Simulate metric computation
-        import random
-        time.sleep(random.uniform(5, 15))
+        import secrets
+        time.sleep(secrets.SystemRandom().uniform(5, 15))
         
         results = {
             "metrics": {},
@@ -419,11 +419,11 @@ class NodeManager:
         
         for metric in metrics_to_compute:
             if metric == "fvd":
-                results["metrics"]["fvd"] = random.uniform(80, 150)
+                results["metrics"]["fvd"] = secrets.SystemRandom().uniform(80, 150)
             elif metric == "is":
-                results["metrics"]["is"] = random.uniform(20, 50)
+                results["metrics"]["is"] = secrets.SystemRandom().uniform(20, 50)
             elif metric == "clip_sim":
-                results["metrics"]["clip_sim"] = random.uniform(0.1, 0.5)
+                results["metrics"]["clip_sim"] = secrets.SystemRandom().uniform(0.1, 0.5)
         
         return results
     
@@ -442,13 +442,13 @@ class NodeManager:
         logger.info(f"Preprocessing {len(data_paths)} data files")
         
         # Simulate preprocessing
-        import random
-        time.sleep(random.uniform(2, 8))
+        import secrets
+        time.sleep(secrets.SystemRandom().uniform(2, 8))
         
         return {
             "processed_files": len(data_paths),
             "output_paths": [f"processed_{i}.npy" for i in range(len(data_paths))],
-            "preprocessing_time": random.uniform(1, 10)
+            "preprocessing_time": secrets.SystemRandom().uniform(1, 10)
         }
     
     def get_node_status(self) -> Dict[str, Any]:
@@ -750,8 +750,8 @@ class TaskDistributor:
         
         elif strategy == "random":
             # Random selection
-            import random
-            return random.choice(available_nodes)
+            import secrets
+            return secrets.SystemRandom().choice(available_nodes)
         
         elif strategy == "capability_based":
             # Select based on task requirements and node capabilities
@@ -991,10 +991,10 @@ if RAY_AVAILABLE:
                 Evaluation results
             """
             # Simulate model evaluation
-            import random
+            import secrets
             import time
             
-            time.sleep(random.uniform(5, 20))
+            time.sleep(secrets.SystemRandom().uniform(5, 20))
             
             results = {
                 "model_name": model_name,
@@ -1007,8 +1007,8 @@ if RAY_AVAILABLE:
                     "prompt_idx": i,
                     "prompt": prompt,
                     "metrics": {
-                        "fvd": random.uniform(80, 120),
-                        "is": random.uniform(25, 45)
+                        "fvd": secrets.SystemRandom().uniform(80, 120),
+                        "is": secrets.SystemRandom().uniform(25, 45)
                     }
                 })
             

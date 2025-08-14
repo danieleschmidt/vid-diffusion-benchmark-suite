@@ -69,9 +69,9 @@ class WorkloadPredictor:
         
         # Initialize weights randomly
         np.random.seed(42)
-        self.W1 = np.random.randn(self.input_size, self.hidden_size) * 0.1
+        self.W1 = np.secrets.SystemRandom().gauss(0, 1)  # Using gauss instead of randnself.input_size, self.hidden_size) * 0.1
         self.b1 = np.zeros((1, self.hidden_size))
-        self.W2 = np.random.randn(self.hidden_size, self.output_size) * 0.1
+        self.W2 = np.secrets.SystemRandom().gauss(0, 1)  # Using gauss instead of randnself.hidden_size, self.output_size) * 0.1
         self.b2 = np.zeros((1, self.output_size))
         
         # Training state

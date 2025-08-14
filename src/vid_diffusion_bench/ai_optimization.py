@@ -5,7 +5,7 @@ and neural architecture search for benchmark parameter tuning and model optimiza
 """
 
 import logging
-import random
+import secrets
 import time
 from typing import Dict, List, Optional, Tuple, Any, Callable, Union
 from dataclasses import dataclass, field
@@ -114,15 +114,15 @@ class BayesianOptimization(OptimizationStrategy):
         
         # Sample continuous parameters
         for param, (low, high) in self.search_space.continuous_params.items():
-            params[param] = np.random.uniform(low, high)
+            params[param] = np.secrets.SystemRandom().uniform(low, high)
         
         # Sample discrete parameters
         for param, values in self.search_space.discrete_params.items():
-            params[param] = random.choice(values)
+            params[param] = secrets.SystemRandom().choice(values)
         
         # Sample categorical parameters
         for param, categories in self.search_space.categorical_params.items():
-            params[param] = random.choice(categories)
+            params[param] = secrets.SystemRandom().choice(categories)
         
         return params
     
@@ -159,7 +159,7 @@ class BayesianOptimization(OptimizationStrategy):
     def _evaluate_acquisition(self, params: Dict[str, Any]) -> float:
         """Evaluate acquisition function at given parameters."""
         if self.gp_model is None:
-            return np.random.random()  # Random if no model
+            return np.secrets.SystemRandom().random()  # Random if no model
         
         # Simplified acquisition function (Expected Improvement)
         x = self._params_to_vector(params)
@@ -248,13 +248,13 @@ class EvolutionaryOptimization(OptimizationStrategy):
         individual = {}
         
         for param, (low, high) in self.search_space.continuous_params.items():
-            individual[param] = np.random.uniform(low, high)
+            individual[param] = np.secrets.SystemRandom().uniform(low, high)
         
         for param, values in self.search_space.discrete_params.items():
-            individual[param] = random.choice(values)
+            individual[param] = secrets.SystemRandom().choice(values)
         
         for param, categories in self.search_space.categorical_params.items():
-            individual[param] = random.choice(categories)
+            individual[param] = secrets.SystemRandom().choice(categories)
         
         return individual
     
@@ -283,13 +283,13 @@ class EvolutionaryOptimization(OptimizationStrategy):
         
         # Fill rest with crossover and mutation
         while len(new_population) < self.population_size:
-            if np.random.random() < self.crossover_rate and len(elite) >= 2:
+            if np.secrets.SystemRandom().random() < self.crossover_rate and len(elite) >= 2:
                 # Crossover
-                parent1, parent2 = random.sample(elite, 2)
+                parent1, parent2 = secrets.SystemRandom().sample(elite, 2)
                 child = self._crossover(parent1, parent2)
             else:
                 # Mutation of elite individual
-                child = self._mutate(random.choice(elite))
+                child = self._mutate(secrets.SystemRandom().choice(elite))
             
             new_population.append(child)
         
@@ -302,14 +302,14 @@ class EvolutionaryOptimization(OptimizationStrategy):
         
         # Uniform crossover for continuous parameters
         for param in self.search_space.continuous_params:
-            child[param] = parent1[param] if np.random.random() < 0.5 else parent2[param]
+            child[param] = parent1[param] if np.secrets.SystemRandom().random() < 0.5 else parent2[param]
         
         # Random selection for discrete/categorical parameters
         for param in self.search_space.discrete_params:
-            child[param] = parent1[param] if np.random.random() < 0.5 else parent2[param]
+            child[param] = parent1[param] if np.secrets.SystemRandom().random() < 0.5 else parent2[param]
         
         for param in self.search_space.categorical_params:
-            child[param] = parent1[param] if np.random.random() < 0.5 else parent2[param]
+            child[param] = parent1[param] if np.secrets.SystemRandom().random() < 0.5 else parent2[param]
         
         return child
     
@@ -319,7 +319,7 @@ class EvolutionaryOptimization(OptimizationStrategy):
         
         # Mutate continuous parameters
         for param, (low, high) in self.search_space.continuous_params.items():
-            if np.random.random() < self.mutation_rate:
+            if np.secrets.SystemRandom().random() < self.mutation_rate:
                 # Gaussian mutation
                 current_value = mutated[param]
                 mutation_strength = (high - low) * 0.1
@@ -328,13 +328,13 @@ class EvolutionaryOptimization(OptimizationStrategy):
         
         # Mutate discrete parameters
         for param, values in self.search_space.discrete_params.items():
-            if np.random.random() < self.mutation_rate:
-                mutated[param] = random.choice(values)
+            if np.secrets.SystemRandom().random() < self.mutation_rate:
+                mutated[param] = secrets.SystemRandom().choice(values)
         
         # Mutate categorical parameters
         for param, categories in self.search_space.categorical_params.items():
-            if np.random.random() < self.mutation_rate:
-                mutated[param] = random.choice(categories)
+            if np.secrets.SystemRandom().random() < self.mutation_rate:
+                mutated[param] = secrets.SystemRandom().choice(categories)
         
         return mutated
 
@@ -356,7 +356,7 @@ class ReinforcementLearningOptimization(OptimizationStrategy):
         """Suggest parameters using Q-learning policy."""
         current_state = self._get_current_state(history)
         
-        if np.random.random() < self.epsilon:
+        if np.secrets.SystemRandom().random() < self.epsilon:
             # Explore: random action
             action = self._random_action()
         else:
@@ -398,7 +398,7 @@ class ReinforcementLearningOptimization(OptimizationStrategy):
     def _random_action(self) -> str:
         """Generate random action."""
         actions = ["increase_quality", "decrease_latency", "balance", "explore"]
-        return random.choice(actions)
+        return secrets.SystemRandom().choice(actions)
     
     def _best_action(self, state: str) -> str:
         """Select best action for given state."""
@@ -475,13 +475,13 @@ class ReinforcementLearningOptimization(OptimizationStrategy):
         params = {}
         
         for param, (low, high) in self.search_space.continuous_params.items():
-            params[param] = np.random.uniform(low, high)
+            params[param] = np.secrets.SystemRandom().uniform(low, high)
         
         for param, values in self.search_space.discrete_params.items():
-            params[param] = random.choice(values)
+            params[param] = secrets.SystemRandom().choice(values)
         
         for param, categories in self.search_space.categorical_params.items():
-            params[param] = random.choice(categories)
+            params[param] = secrets.SystemRandom().choice(categories)
         
         return params
 

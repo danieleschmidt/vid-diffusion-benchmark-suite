@@ -11,7 +11,7 @@ import logging
 from typing import Dict, List, Tuple, Any, Callable, Optional, Union
 from dataclasses import dataclass, field
 from concurrent.futures import ThreadPoolExecutor
-import random
+import secrets
 import math
 from abc import ABC, abstractmethod
 
@@ -55,9 +55,9 @@ class QuantumInspiredOptimizer(ABC):
         params = {}
         for param, (min_val, max_val) in self.search_space.items():
             if isinstance(min_val, int) and isinstance(max_val, int):
-                params[param] = random.randint(min_val, max_val)
+                params[param] = secrets.SystemRandom().randint(min_val, max_val)
             else:
-                params[param] = random.uniform(min_val, max_val)
+                params[param] = secrets.SystemRandom().uniform(min_val, max_val)
         return params
 
 
@@ -95,7 +95,7 @@ class QuantumAnnealer(QuantumInspiredOptimizer):
             
             # Acceptance probability with quantum tunneling
             delta = neighbor_score - current_score
-            if delta > 0 or random.random() < self._quantum_acceptance_probability(delta, temperature):
+            if delta > 0 or secrets.SystemRandom().random() < self._quantum_acceptance_probability(delta, temperature):
                 current_params = neighbor_params
                 current_score = neighbor_score
                 
@@ -133,16 +133,16 @@ class QuantumAnnealer(QuantumInspiredOptimizer):
         mutation_strength = temperature / self.temperature
         
         for param, (min_val, max_val) in self.search_space.items():
-            if random.random() < 0.3:  # Mutation probability
+            if secrets.SystemRandom().random() < 0.3:  # Mutation probability
                 range_size = max_val - min_val
                 
                 # Quantum tunneling: occasionally make large jumps
-                if random.random() < 0.1 * mutation_strength:
+                if secrets.SystemRandom().random() < 0.1 * mutation_strength:
                     # Quantum tunnel to random location
                     if isinstance(min_val, int):
-                        neighbor[param] = random.randint(min_val, max_val)
+                        neighbor[param] = secrets.SystemRandom().randint(min_val, max_val)
                     else:
-                        neighbor[param] = random.uniform(min_val, max_val)
+                        neighbor[param] = secrets.SystemRandom().uniform(min_val, max_val)
                 else:
                     # Normal mutation with quantum uncertainty
                     uncertainty = range_size * 0.1 * mutation_strength
@@ -257,7 +257,7 @@ class QuantumGeneticAlgorithm(QuantumInspiredOptimizer):
             superposition_states = []
             for _ in range(3):  # 3 basis states per individual
                 params = self._random_params()
-                amplitude = random.uniform(0.3, 1.0)
+                amplitude = secrets.SystemRandom().uniform(0.3, 1.0)
                 superposition_states.append((params, amplitude))
             population.append(superposition_states)
             
@@ -273,7 +273,7 @@ class QuantumGeneticAlgorithm(QuantumInspiredOptimizer):
             probabilities = [state[1] / total_amplitude for state in individual]
             
             # Probabilistic measurement
-            measurement_result = np.random.choice(
+            measurement_result = np.secrets.SystemRandom().choice(
                 len(individual),
                 p=probabilities
             )
@@ -296,7 +296,7 @@ class QuantumGeneticAlgorithm(QuantumInspiredOptimizer):
         while len(selected) < self.population_size:
             # Quantum tournament with interference
             tournament_size = min(5, len(population))
-            tournament = random.sample(population, tournament_size)
+            tournament = secrets.SystemRandom().sample(population, tournament_size)
             
             # Add quantum interference to fitness
             for i, (params, score) in enumerate(tournament):
@@ -318,7 +318,7 @@ class QuantumGeneticAlgorithm(QuantumInspiredOptimizer):
         offspring = []
         
         for i in range(0, len(parents) - 1, 2):
-            if random.random() < self.crossover_rate:
+            if secrets.SystemRandom().random() < self.crossover_rate:
                 parent1, parent2 = parents[i][0], parents[i + 1][0]
                 
                 # Quantum entangled crossover
@@ -329,7 +329,7 @@ class QuantumGeneticAlgorithm(QuantumInspiredOptimizer):
                     val1, val2 = parent1[param], parent2[param]
                     
                     # Entanglement: children's values are correlated
-                    entanglement_phase = random.uniform(0, 2 * math.pi)
+                    entanglement_phase = secrets.SystemRandom().uniform(0, 2 * math.pi)
                     
                     # Quantum crossover with phase
                     alpha = 0.5 + 0.3 * math.cos(entanglement_phase)
@@ -361,16 +361,16 @@ class QuantumGeneticAlgorithm(QuantumInspiredOptimizer):
             mutant = individual.copy()
             
             for param in self.search_space:
-                if random.random() < self.mutation_rate:
+                if secrets.SystemRandom().random() < self.mutation_rate:
                     min_val, max_val = self.search_space[param]
                     
                     # Quantum tunneling mutation
-                    if random.random() < 0.1:  # 10% chance of quantum tunneling
+                    if secrets.SystemRandom().random() < 0.1:  # 10% chance of quantum tunneling
                         # Tunnel to completely random location
                         if isinstance(min_val, int):
-                            mutant[param] = random.randint(min_val, max_val)
+                            mutant[param] = secrets.SystemRandom().randint(min_val, max_val)
                         else:
-                            mutant[param] = random.uniform(min_val, max_val)
+                            mutant[param] = secrets.SystemRandom().uniform(min_val, max_val)
                     else:
                         # Normal quantum fluctuation
                         range_size = max_val - min_val
@@ -403,7 +403,7 @@ class QuantumGeneticAlgorithm(QuantumInspiredOptimizer):
                     range_size = max_val - min_val
                     
                     if isinstance(min_val, int):
-                        delta = random.randint(-int(range_size * 0.1), int(range_size * 0.1))
+                        delta = secrets.SystemRandom().randint(-int(range_size * 0.1), int(range_size * 0.1))
                         nearby_params[param] = max(min_val, min(max_val, value + delta))
                     else:
                         delta = random.gauss(0, range_size * 0.05)

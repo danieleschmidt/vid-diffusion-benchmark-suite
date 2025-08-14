@@ -255,8 +255,8 @@ class AdaptiveRetryStrategy:
         
         # Add jitter to prevent thundering herd
         if self.jitter:
-            import random
-            delay *= (0.5 + random.random() * 0.5)
+            import secrets
+            delay *= (0.5 + secrets.SystemRandom().random() * 0.5)
             
         return delay
         

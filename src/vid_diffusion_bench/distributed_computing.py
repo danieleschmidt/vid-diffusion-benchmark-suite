@@ -258,7 +258,7 @@ class ResourceManager:
         ]
         
         if available_nodes:
-            return np.random.choice(available_nodes)
+            return np.secrets.SystemRandom().choice(available_nodes)
         return None
     
     def _estimate_task_load(self, task: BenchmarkTask) -> float:
