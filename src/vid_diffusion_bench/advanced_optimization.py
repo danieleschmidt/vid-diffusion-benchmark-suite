@@ -499,6 +499,7 @@ class AdvancedCache:
                 data = self.cache[key]
                 if isinstance(data, bytes):
                     try:
+        # SECURITY: pickle.loads() can execute arbitrary code. Only use with trusted data.
                         return pickle.loads(data)
                     except Exception:
                         # If decompression fails, remove from cache

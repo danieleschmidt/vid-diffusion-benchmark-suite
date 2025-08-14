@@ -5,7 +5,7 @@ machine learning techniques and domain knowledge.
 """
 
 import logging
-import random
+import secrets
 import re
 from typing import Dict, List, Optional, Tuple, Set
 from dataclasses import dataclass, field
@@ -124,10 +124,10 @@ class SemanticPromptSpace:
         config = combinations[complexity]
         
         return {
-            "subject": random.choice(random.choice(list(self.subjects.values()))),
-            "actions": random.choices(random.choice(list(self.actions.values())), k=config["actions"]),
-            "environment": random.choice(random.choice(list(self.environments.values()))),
-            "styles": random.choices(random.choice(list(self.styles.values())), k=config["styles"]),
+            "subject": secrets.SystemRandom().choice(secrets.SystemRandom().choice(list(self.subjects.values()))),
+            "actions": random.choices(secrets.SystemRandom().choice(list(self.actions.values())), k=config["actions"]),
+            "environment": secrets.SystemRandom().choice(secrets.SystemRandom().choice(list(self.environments.values()))),
+            "styles": random.choices(secrets.SystemRandom().choice(list(self.styles.values())), k=config["styles"]),
             "enhancers": random.choices(self.quality_enhancers, k=config["enhancers"])
         }
 
@@ -286,7 +286,7 @@ class PromptOptimizer:
             if len(current_enhancers) < 2:
                 available_enhancers = [word for word in motion_enhancers if word not in prompt.lower()]
                 if available_enhancers:
-                    selected = random.choice(available_enhancers)
+                    selected = secrets.SystemRandom().choice(available_enhancers)
                     enhanced_prompt = f"{selected} {prompt}"
                     return {
                         "prompt": enhanced_prompt,
@@ -512,8 +512,8 @@ class IntelligentPromptGenerator:
             style=combo["styles"][0] if combo["styles"] else "cinematic",
             style_1=combo["styles"][0] if len(combo["styles"]) > 0 else "cinematic",
             style_2=combo["styles"][1] if len(combo["styles"]) > 1 else "artistic",
-            motion_adverb=random.choice(["smoothly", "gracefully", "dynamically", "fluidly"]),
-            quality_prefix=random.choice(["A stunning", "A mesmerizing", "An elegant"]),
+            motion_adverb=secrets.SystemRandom().choice(["smoothly", "gracefully", "dynamically", "fluidly"]),
+            quality_prefix=secrets.SystemRandom().choice(["A stunning", "A mesmerizing", "An elegant"]),
             enhancer=combo["enhancers"][0] if combo["enhancers"] else "high quality"
         )
     
@@ -524,7 +524,7 @@ class IntelligentPromptGenerator:
         combo1 = self.semantic_space.get_random_combination(complexity)
         combo2 = self.semantic_space.get_random_combination(complexity)
         
-        transition = random.choice(transitions)
+        transition = secrets.SystemRandom().choice(transitions)
         
         return f"{combo1['subject']} in {combo1['environment']} {transition} {combo2['subject']} in {combo2['environment']}, {combo1['styles'][0] if combo1['styles'] else 'cinematic'} style"
     
@@ -533,7 +533,7 @@ class IntelligentPromptGenerator:
         camera_moves = ["zoom in", "zoom out", "pan left", "pan right", "dolly forward", "dolly back", "rotate around"]
         
         combo = self.semantic_space.get_random_combination(complexity)
-        camera_move = random.choice(camera_moves)
+        camera_move = secrets.SystemRandom().choice(camera_moves)
         
         return f"Camera {camera_move} on {combo['subject']} {combo['actions'][0] if combo['actions'] else 'standing'} in {combo['environment']}, {combo['styles'][0] if combo['styles'] else 'professional cinematography'}"
     
@@ -542,7 +542,7 @@ class IntelligentPromptGenerator:
         temporal_elements = ["time-lapse", "slow motion", "sequence of", "progression of", "evolution of"]
         
         combo = self.semantic_space.get_random_combination(complexity)
-        temporal = random.choice(temporal_elements)
+        temporal = secrets.SystemRandom().choice(temporal_elements)
         
         return f"{temporal} {combo['subject']} {combo['actions'][0] if combo['actions'] else 'changing'} in {combo['environment']}, maintaining consistent {combo['styles'][0] if combo['styles'] else 'style'}"
     
@@ -552,10 +552,10 @@ class IntelligentPromptGenerator:
         
         # Get two different subjects
         subject1 = combo["subject"]
-        subject2 = random.choice(random.choice(list(self.semantic_space.subjects.values())))
+        subject2 = secrets.SystemRandom().choice(secrets.SystemRandom().choice(list(self.semantic_space.subjects.values())))
         
         interactions = ["interacting with", "playing with", "dancing with", "fighting", "collaborating with"]
-        interaction = random.choice(interactions)
+        interaction = secrets.SystemRandom().choice(interactions)
         
         return f"{subject1} {interaction} {subject2} in {combo['environment']}, {combo['styles'][0] if combo['styles'] else 'dynamic'} cinematography"
     

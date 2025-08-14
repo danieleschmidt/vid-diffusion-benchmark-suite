@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from collections import deque
 import functools
-import random
+import secrets
 
 from .error_handling import BenchmarkException, RetryableError, ErrorSeverity
 
@@ -394,7 +394,7 @@ class RetryManager:
         # Add jitter to avoid thundering herd
         if self.config.jitter:
             jitter_amount = delay * 0.1  # 10% jitter
-            jitter = random.uniform(-jitter_amount, jitter_amount)
+            jitter = secrets.SystemRandom().uniform(-jitter_amount, jitter_amount)
             delay += jitter
         
         return max(0, delay)

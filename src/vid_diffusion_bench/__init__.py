@@ -1,3 +1,7 @@
+
+# SECURITY NOTICE: This package handles potentially sensitive data and operations.
+# Always validate inputs, use secure random generation for crypto operations,
+# and follow security best practices in production deployments.
 """Video Diffusion Benchmark Suite.
 
 A unified test-bed for next-gen open-source video diffusion models (VDMs).

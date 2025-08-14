@@ -246,6 +246,7 @@ class LRUCache:
             cache_file = self.cache_dir / f"{self._hash_key(key)}.pkl"
             if cache_file.exists():
                 with open(cache_file, 'rb') as f:
+        # SECURITY: pickle.loads() can execute arbitrary code. Only use with trusted data.
                     value = pickle.load(f)
                 
                 # Add to memory cache
@@ -273,6 +274,7 @@ class LRUCache:
                     if cache_file.exists():
                         try:
                             with open(cache_file, 'rb') as f:
+        # SECURITY: pickle.loads() can execute arbitrary code. Only use with trusted data.
                                 value = pickle.load(f)
                             
                             # Reconstruct original key (this is simplified)

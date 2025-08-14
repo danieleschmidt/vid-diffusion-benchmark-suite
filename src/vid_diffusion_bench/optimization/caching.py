@@ -250,6 +250,7 @@ class DiskCache:
                 
             try:
                 with open(cache_path, 'rb') as f:
+        # SECURITY: pickle.loads() can execute arbitrary code. Only use with trusted data.
                     value = pickle.load(f)
                     
                 # Update access info
@@ -392,6 +393,7 @@ class RedisCache:
             data = self.client.get(self._make_key(key))
             if data is None:
                 return None
+        # SECURITY: pickle.loads() can execute arbitrary code. Only use with trusted data.
             return pickle.loads(data)
         except Exception as e:
             logger.error(f"Redis get failed for {key}: {e}")

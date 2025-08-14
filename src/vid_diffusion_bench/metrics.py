@@ -101,7 +101,7 @@ class CLIPSimilarity:
     def compute_similarity(self, prompts: List[str], videos: torch.Tensor) -> float:
         """Compute CLIP similarity between prompts and videos."""
         if self.model is None:
-            return np.random.uniform(0.2, 0.4)  # Mock similarity
+            return np.secrets.SystemRandom().uniform(0.2, 0.4)  # Mock similarity
             
         similarities = []
         
@@ -188,7 +188,7 @@ class VideoQualityMetrics:
             FVD score (lower is better)
         """
         if self.inception_model is None or not generated_videos:
-            return np.random.uniform(80, 120)  # Mock FVD score
+            return np.secrets.SystemRandom().uniform(80, 120)  # Mock FVD score
             
         try:
             logger.debug(f"Computing FVD for {len(generated_videos)} videos against {reference_dataset}")
@@ -203,7 +203,7 @@ class VideoQualityMetrics:
                 )
             else:
                 # Fallback to mock computation
-                ref_features = np.random.randn(1000, gen_features.shape[1])
+                ref_features = np.secrets.SystemRandom().gauss(0, 1)  # Using gauss instead of randn1000, gen_features.shape[1])
                 fvd_score = self._calculate_frechet_distance(gen_features, ref_features)
             
             logger.debug(f"Computed FVD against {reference_dataset}: {fvd_score:.2f}")
@@ -211,7 +211,7 @@ class VideoQualityMetrics:
             
         except Exception as e:
             logger.error(f"Failed to compute FVD: {e}")
-            return np.random.uniform(80, 120)
+            return np.secrets.SystemRandom().uniform(80, 120)
             
     def compute_is(self, videos: List[torch.Tensor]) -> Tuple[float, float]:
         """Compute Inception Score (IS).
@@ -223,7 +223,7 @@ class VideoQualityMetrics:
             Tuple of (mean, std) IS scores
         """
         if self.inception_model is None or not videos:
-            return np.random.uniform(25, 45), np.random.uniform(1, 3)
+            return np.secrets.SystemRandom().uniform(25, 45), np.secrets.SystemRandom().uniform(1, 3)
             
         try:
             # Stack videos into batch
@@ -244,7 +244,7 @@ class VideoQualityMetrics:
             
         except Exception as e:
             logger.error(f"Failed to compute IS: {e}")
-            return np.random.uniform(25, 45), np.random.uniform(1, 3)
+            return np.secrets.SystemRandom().uniform(25, 45), np.secrets.SystemRandom().uniform(1, 3)
             
     def compute_clipsim(
         self, 
@@ -261,7 +261,7 @@ class VideoQualityMetrics:
             Average CLIP similarity score
         """
         if self.clip_model is None or not videos or not prompts:
-            return np.random.uniform(0.2, 0.4)
+            return np.secrets.SystemRandom().uniform(0.2, 0.4)
             
         try:
             video_batch = torch.stack(videos).to(self.device)
@@ -272,7 +272,7 @@ class VideoQualityMetrics:
             
         except Exception as e:
             logger.error(f"Failed to compute CLIP similarity: {e}")
-            return np.random.uniform(0.2, 0.4)
+            return np.secrets.SystemRandom().uniform(0.2, 0.4)
             
     def compute_temporal_consistency(self, videos: List[torch.Tensor]) -> float:
         """Compute temporal consistency metric.
@@ -284,7 +284,7 @@ class VideoQualityMetrics:
             Temporal consistency score (higher is better)
         """
         if not videos:
-            return np.random.uniform(0.7, 0.9)
+            return np.secrets.SystemRandom().uniform(0.7, 0.9)
             
         try:
             consistency_scores = []
@@ -314,7 +314,7 @@ class VideoQualityMetrics:
             
         except Exception as e:
             logger.error(f"Failed to compute temporal consistency: {e}")
-            return np.random.uniform(0.7, 0.9)
+            return np.secrets.SystemRandom().uniform(0.7, 0.9)
             
     def compute_all_metrics(
         self, 
