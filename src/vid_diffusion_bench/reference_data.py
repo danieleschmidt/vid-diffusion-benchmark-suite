@@ -3,6 +3,7 @@
 import os
 import logging
 import pickle
+# Note: pickle import kept for legacy compatibility, but use is discouraged
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from urllib.request import urlopen, urlretrieve
@@ -31,6 +32,8 @@ class ReferenceDatasetManager:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         
         # URLs for pre-computed reference statistics
+        # WARNING: External URLs point to pickle files which pose security risks
+        # Consider providing JSON alternatives for these datasets
         self.reference_urls = {
             "ucf101": {
                 "features_url": "https://github.com/cvpr2022-stylegan-v/stylegan-v/releases/download/weights/ucf101_inception_features.pkl",
@@ -101,11 +104,23 @@ class ReferenceDatasetManager:
             
         if features_file.exists():
             try:
-                with open(features_file, 'rb') as f:
-        # SECURITY: pickle.loads() can execute arbitrary code. Only use with trusted data.
-                    features = pickle.load(f)
-                logger.info(f"Loaded reference features for {dataset_name}: {features.shape}")
-                return features
+                # Try to load as JSON first (secure)
+                json_file = features_file.with_suffix('.json')
+                if json_file.exists():
+                    with open(json_file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    # Convert back to numpy array if it was serialized as list
+                    if isinstance(data, list):
+                        features = np.array(data)
+                    else:
+                        features = data
+                    logger.info(f"Loaded reference features for {dataset_name} from JSON: {features.shape}")
+                    return features
+                
+                # No fallback to pickle for security reasons
+                logger.error(f"Found pickle file but cannot load for security reasons: {features_file.name}")
+                logger.error("Please convert reference data to JSON format or use npz files")
+                return None
             except Exception as e:
                 logger.error(f"Failed to load reference features: {e}")
                 
@@ -168,10 +183,10 @@ class ReferenceDatasetManager:
         """Generate mock reference statistics for fallback."""
         # Create realistic mock statistics based on Inception-v3 features
         feature_dim = 2048
-        mean = np.secrets.SystemRandom().gauss(0, 1)  # Using gauss instead of randnfeature_dim) * 0.1
+        mean = np.random.randn(feature_dim) * 0.1
         
         # Generate positive definite covariance matrix
-        A = np.secrets.SystemRandom().gauss(0, 1)  # Using gauss instead of randnfeature_dim, feature_dim) * 0.1
+        A = np.random.randn(feature_dim, feature_dim) * 0.1
         cov = A @ A.T + np.eye(feature_dim) * 0.01
         
         return mean, cov
@@ -241,7 +256,7 @@ class ImprovedInceptionV3Features:
                 n_videos = len(videos)
             else:
                 n_videos = videos.shape[0] if len(videos.shape) == 5 else 1
-            return np.secrets.SystemRandom().gauss(0, 1)  # Using gauss instead of randnn_videos, 2048)
+            return np.random.randn(n_videos, 2048)
             
         all_features = []
         

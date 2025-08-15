@@ -354,12 +354,14 @@ class ErrorReportGenerator:
         # Add system information
         try:
             import psutil
+            import sys
+            import platform
             report_data["system_info"] = {
-                "python_version": __import__('sys').version,
+                "python_version": sys.version,
                 "memory_total_gb": psutil.virtual_memory().total / (1024**3),
                 "memory_available_gb": psutil.virtual_memory().available / (1024**3),
                 "cpu_count": psutil.cpu_count(),
-                "platform": __import__('platform').platform(),
+                "platform": platform.platform(),
             }
             
             # Add GPU information if available
@@ -401,9 +403,10 @@ def setup_global_error_handling(log_level: str = "INFO", report_dir: Path = None
     
     # Install global exception handler
     def handle_exception(exc_type, exc_value, exc_traceback):
+        import sys
         if issubclass(exc_type, KeyboardInterrupt):
             # Don't catch keyboard interrupt
-            __import__('sys').__excepthook__(exc_type, exc_value, exc_traceback)
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
             return
         
         logger.critical("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
@@ -411,7 +414,8 @@ def setup_global_error_handling(log_level: str = "INFO", report_dir: Path = None
         if isinstance(exc_value, BenchmarkError):
             _global_error_reporter.generate_report(exc_value)
     
-    __import__('sys').excepthook = handle_exception
+    import sys
+    sys.excepthook = handle_exception
 
 
 # Global error reporter instance

@@ -2,6 +2,7 @@
 
 import os
 import pickle
+# Note: pickle import kept for legacy compatibility, but use is discouraged
 import hashlib
 import json
 import time
@@ -181,7 +182,12 @@ class LRUCache:
         else:
             # Rough estimate for other objects
             try:
-                return len(pickle.dumps(obj))
+                # Try JSON serialization first for security
+                json_data = json.dumps(obj, default=str)
+                return len(json_data.encode('utf-8'))
+            except (TypeError, ValueError):
+                # Cannot calculate size for non-JSON serializable objects for security reasons
+                return 1024  # Default estimate
             except:
                 return 1024  # Default estimate
 
@@ -249,9 +255,16 @@ class DiskCache:
                 return None
                 
             try:
-                with open(cache_path, 'rb') as f:
-        # SECURITY: pickle.loads() can execute arbitrary code. Only use with trusted data.
-                    value = pickle.load(f)
+                # Try JSON format first (secure)
+                json_path = cache_path.with_suffix('.json')
+                if json_path.exists():
+                    with open(json_path, 'r', encoding='utf-8') as f:
+                        value = json.load(f)
+                else:
+                    # No fallback to pickle format for security reasons
+                    logger.error(f"Found legacy pickle cache file but cannot load for security reasons: {cache_path.name}")
+                    logger.error("Please convert pickle cache files to JSON format or clear the cache")
+                    return None
                     
                 # Update access info
                 metadata['last_accessed'] = datetime.utcnow().isoformat()
@@ -269,22 +282,30 @@ class DiskCache:
         """Put item in disk cache."""
         with self._lock:
             try:
-                # Serialize to bytes
-                data = pickle.dumps(value)
-                size_bytes = len(data)
-                
-                # Check size limits
-                if size_bytes > self.max_size_bytes:
-                    logger.warning(f"Cache item too large: {size_bytes} bytes")
-                    return False
+                # Try JSON serialization first (secure)
+                try:
+                    json_data = json.dumps(value, default=str, indent=2)
+                    data = json_data.encode('utf-8')
+                    size_bytes = len(data)
                     
-                # Make space if needed
-                self._cleanup_space(size_bytes)
-                
-                # Write to disk
-                cache_path = self._get_cache_path(key)
-                with open(cache_path, 'wb') as f:
-                    f.write(data)
+                    # Check size limits
+                    if size_bytes > self.max_size_bytes:
+                        logger.warning(f"Cache item too large: {size_bytes} bytes")
+                        return False
+                        
+                    # Make space if needed
+                    self._cleanup_space(size_bytes)
+                    
+                    # Write JSON to disk
+                    cache_path = self._get_cache_path(key).with_suffix('.json')
+                    with open(cache_path, 'w', encoding='utf-8') as f:
+                        f.write(json_data)
+                        
+                except (TypeError, ValueError):
+                    # Cannot cache non-JSON serializable objects for security reasons
+                    logger.error(f"Object not JSON serializable, cannot cache for security reasons")
+                    logger.error("Consider using simpler data types that can be JSON serialized")
+                    return False
                     
                 # Update metadata
                 self._metadata[key] = {
@@ -393,8 +414,18 @@ class RedisCache:
             data = self.client.get(self._make_key(key))
             if data is None:
                 return None
-        # SECURITY: pickle.loads() can execute arbitrary code. Only use with trusted data.
-            return pickle.loads(data)
+            
+            # Try to decode as JSON first (secure)
+            try:
+                if isinstance(data, bytes):
+                    json_str = data.decode('utf-8')
+                    return json.loads(json_str)
+                else:
+                    return json.loads(data)
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                # No fallback to pickle for security reasons
+                logger.error(f"Cannot load non-JSON data from Redis (pickle disabled for security)")
+                return None
         except Exception as e:
             logger.error(f"Redis get failed for {key}: {e}")
             return None
@@ -402,7 +433,15 @@ class RedisCache:
     def put(self, key: str, value: Any, ttl_seconds: Optional[int] = None) -> bool:
         """Put item in Redis cache."""
         try:
-            data = pickle.dumps(value)
+            # Try JSON serialization first (secure)
+            try:
+                json_data = json.dumps(value, default=str)
+                data = json_data.encode('utf-8')
+            except (TypeError, ValueError):
+                # Cannot cache non-JSON serializable objects for security reasons
+                logger.error(f"Object not JSON serializable, cannot cache in Redis for security reasons")
+                return False
+            
             redis_key = self._make_key(key)
             
             if ttl_seconds:

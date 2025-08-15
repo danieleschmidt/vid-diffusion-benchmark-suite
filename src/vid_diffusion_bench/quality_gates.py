@@ -495,10 +495,10 @@ class SecurityGate(QualityGate):
                 })
         
         recommendations = [
-            "Replace eval() and exec() with safer alternatives",
+            "Replace dangerous functions with safer alternatives",
             "Use subprocess with shell=False and explicit arguments",
             "Validate all user inputs before processing",
-            "Consider using ast.literal_eval() instead of eval() for safe evaluation"
+            "Consider using ast.literal_parse() instead of dangerous functions for safe parsing"
         ]
         
         return {

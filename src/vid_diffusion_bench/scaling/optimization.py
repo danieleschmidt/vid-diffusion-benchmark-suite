@@ -138,8 +138,14 @@ class LRUCache:
         with self._lock:
             # Calculate item size
             try:
-                item_size = len(pickle.dumps(value, protocol=pickle.HIGHEST_PROTOCOL))
+                # Try JSON serialization first for security
+                json_data = json.dumps(value, default=str)
+                item_size = len(json_data.encode('utf-8'))
                 item_size_mb = item_size / (1024 * 1024)
+            except (TypeError, ValueError):
+                # Cannot cache non-JSON serializable objects for security reasons
+                logger.error(f"Object not JSON serializable, cannot cache for security reasons")
+                return False
             except Exception as e:
                 logger.warning(f"Could not calculate size for cache item: {e}")
                 return False
@@ -227,9 +233,14 @@ class LRUCache:
             value: Value to save
         """
         try:
-            cache_file = self.cache_dir / f"{self._hash_key(key)}.pkl"
-            with open(cache_file, 'wb') as f:
-                pickle.dump(value, f)
+            # Try JSON serialization first for security
+            cache_file = self.cache_dir / f"{self._hash_key(key)}.json"
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump(value, f, default=str, indent=2)
+        except (TypeError, ValueError):
+            # Cannot save non-JSON serializable objects for security reasons
+            logger.error(f"Object not JSON serializable, cannot cache for security reasons")
+            logger.error("Consider using simpler data types that can be JSON serialized")
         except Exception as e:
             logger.error(f"Failed to save cache item to disk: {e}")
     
@@ -243,15 +254,22 @@ class LRUCache:
             Loaded value or None
         """
         try:
-            cache_file = self.cache_dir / f"{self._hash_key(key)}.pkl"
-            if cache_file.exists():
-                with open(cache_file, 'rb') as f:
-        # SECURITY: pickle.loads() can execute arbitrary code. Only use with trusted data.
-                    value = pickle.load(f)
+            # Try JSON file first (secure)
+            json_file = self.cache_dir / f"{self._hash_key(key)}.json"
+            if json_file.exists():
+                with open(json_file, 'r', encoding='utf-8') as f:
+                    value = json.load(f)
                 
                 # Add to memory cache
                 self.put(key, value)
                 return value
+            
+            # No fallback to pickle files for security reasons
+            pickle_file = self.cache_dir / f"{self._hash_key(key)}.pkl"
+            if pickle_file.exists():
+                logger.error(f"Found legacy pickle cache file but cannot load for security reasons: {pickle_file.name}")
+                logger.error("Please convert pickle cache files to JSON format or clear the cache")
+                return None
         except Exception as e:
             logger.error(f"Failed to load cache item from disk: {e}")
         
@@ -270,12 +288,14 @@ class LRUCache:
             for key_hash, metadata in index.items():
                 # Load based on access frequency or recency
                 if metadata.get('access_count', 0) > 5:
+                    # Try JSON file first
+                    json_file = self.cache_dir / f"{key_hash}.json"
                     cache_file = self.cache_dir / f"{key_hash}.pkl"
-                    if cache_file.exists():
+                    
+                    if json_file.exists():
                         try:
-                            with open(cache_file, 'rb') as f:
-        # SECURITY: pickle.loads() can execute arbitrary code. Only use with trusted data.
-                                value = pickle.load(f)
+                            with open(json_file, 'r', encoding='utf-8') as f:
+                                value = json.load(f)
                             
                             # Reconstruct original key (this is simplified)
                             key = metadata.get('key', key_hash)
@@ -285,6 +305,10 @@ class LRUCache:
                             
                         except Exception:
                             continue
+                    elif cache_file.exists():
+                        # Cannot load pickle files for security reasons
+                        logger.error(f"Found legacy pickle cache file but cannot load for security reasons: {cache_file.name}")
+                        continue
                             
         except Exception as e:
             logger.error(f"Failed to load persistent cache: {e}")
@@ -299,6 +323,9 @@ class LRUCache:
             
             # Clear persistent storage
             if self.persistent and self.cache_dir:
+                # Clear both JSON and pickle cache files
+                for cache_file in self.cache_dir.glob("*.json"):
+                    cache_file.unlink()
                 for cache_file in self.cache_dir.glob("*.pkl"):
                     cache_file.unlink()
                 if self.index_file.exists():
