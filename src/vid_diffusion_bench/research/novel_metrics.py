@@ -1,14 +1,16 @@
-"""Novel video quality metrics and perceptual analysis.
+"""Enhanced novel evaluation metrics for video diffusion models.
 
-This module implements cutting-edge video quality assessment metrics that go
-beyond traditional FVD, IS, and CLIP scores, providing deeper insights into
-video generation quality for research purposes.
+This module implements state-of-the-art evaluation metrics specifically designed
+for video diffusion models, addressing limitations of traditional metrics and
+providing comprehensive quality assessment for research and production.
 
 Research contributions:
-1. Perceptual Quality Analyzer using advanced vision transformers
-2. Motion Dynamics Assessment for temporal coherence
-3. Semantic Consistency Metrics across frames
-4. Novel cross-modal alignment scoring
+1. Perceptual Video Quality Assessment using neural networks
+2. Temporal Coherence Metrics with motion-aware analysis
+3. Semantic Consistency Evaluation using multimodal embeddings
+4. Content-Adaptive Quality Scoring
+5. Efficiency-Quality Trade-off Metrics for production deployment
+6. Novel Multi-Objective Optimization for model comparison
 """
 
 import torch

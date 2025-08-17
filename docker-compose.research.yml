@@ -1,0 +1,425 @@
+version: '3.8'
+
+services:
+  # Research Framework Core Services
+  research-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.research
+    container_name: vid-research-api
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=research
+      - CUDA_VISIBLE_DEVICES=0,1,2,3
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+    volumes:
+      - ./src:/app/src:ro
+      - ./data:/app/data
+      - ./results:/app/results
+      - ./logs:/app/logs
+      - model-cache:/app/models
+    networks:
+      - research-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 4
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Adaptive Algorithm Service
+  adaptive-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.research
+      target: adaptive-service
+    container_name: vid-adaptive-service
+    environment:
+      - SERVICE_NAME=adaptive-algorithms
+      - CUDA_VISIBLE_DEVICES=0,1
+    volumes:
+      - ./src:/app/src:ro
+      - adaptive-cache:/app/cache
+      - ./logs:/app/logs
+    networks:
+      - research-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 2
+              capabilities: [gpu]
+    restart: unless-stopped
+    depends_on:
+      - redis
+
+  # Novel Metrics Evaluation Service
+  metrics-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.research
+      target: metrics-service
+    container_name: vid-metrics-service
+    environment:
+      - SERVICE_NAME=novel-metrics
+      - CUDA_VISIBLE_DEVICES=2,3
+    volumes:
+      - ./src:/app/src:ro
+      - metrics-cache:/app/cache
+      - ./logs:/app/logs
+    networks:
+      - research-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 2
+              capabilities: [gpu]
+    restart: unless-stopped
+    depends_on:
+      - postgres
+
+  # Quantum Acceleration Service
+  quantum-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.research
+      target: quantum-service
+    container_name: vid-quantum-service
+    environment:
+      - SERVICE_NAME=quantum-acceleration
+      - OMP_NUM_THREADS=16
+    volumes:
+      - ./src:/app/src:ro
+      - quantum-cache:/app/cache
+      - ./logs:/app/logs
+    networks:
+      - research-network
+    deploy:
+      resources:
+        limits:
+          cpus: '16'
+          memory: 64G
+    restart: unless-stopped
+
+  # Intelligent Scaling Service
+  scaling-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.research
+      target: scaling-service
+    container_name: vid-scaling-service
+    environment:
+      - SERVICE_NAME=intelligent-scaling
+      - MONITOR_INTERVAL=30
+    volumes:
+      - ./src:/app/src:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./logs:/app/logs
+    networks:
+      - research-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+  # Research Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: vid-research-db
+    environment:
+      - POSTGRES_DB=vid_research
+      - POSTGRES_USER=research_user
+      - POSTGRES_PASSWORD=research_pass_2024
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - research-network
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U research_user -d vid_research"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis for Caching and Queue Management
+  redis:
+    image: redis:7-alpine
+    container_name: vid-research-redis
+    command: redis-server --appendonly yes --maxmemory 8gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    networks:
+      - research-network
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Experiment Queue Worker
+  queue-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.research
+      target: worker
+    environment:
+      - WORKER_TYPE=experiment
+      - WORKER_CONCURRENCY=4
+      - CUDA_VISIBLE_DEVICES=0,1,2,3
+    volumes:
+      - ./src:/app/src:ro
+      - ./data:/app/data
+      - ./results:/app/results
+      - ./logs:/app/logs
+      - model-cache:/app/models
+    networks:
+      - research-network
+    deploy:
+      replicas: 2
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 4
+              capabilities: [gpu]
+    restart: unless-stopped
+    depends_on:
+      - redis
+      - postgres
+
+  # Monitoring Stack
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: vid-research-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=90d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - research-network
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: vid-research-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin_research_2024
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      - research-network
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+  # Log Aggregation
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: vid-research-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+      - xpack.security.enabled=false
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - research-network
+    ports:
+      - "9200:9200"
+    restart: unless-stopped
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: vid-research-logstash
+    volumes:
+      - ./monitoring/logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./logs:/app/logs:ro
+    networks:
+      - research-network
+    environment:
+      - "LS_JAVA_OPTS=-Xmx1g -Xms1g"
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: vid-research-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    networks:
+      - research-network
+    ports:
+      - "5601:5601"
+    restart: unless-stopped
+    depends_on:
+      - elasticsearch
+
+  # Model Registry Service
+  model-registry:
+    image: minio/minio:latest
+    container_name: vid-model-registry
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=research_admin
+      - MINIO_ROOT_PASSWORD=research_models_2024
+    volumes:
+      - minio-data:/data
+    networks:
+      - research-network
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Jupyter Research Environment
+  jupyter:
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+    container_name: vid-research-jupyter
+    environment:
+      - JUPYTER_TOKEN=research_token_2024
+      - CUDA_VISIBLE_DEVICES=0,1
+    volumes:
+      - ./notebooks:/home/jovyan/work/notebooks
+      - ./src:/home/jovyan/work/src:ro
+      - ./data:/home/jovyan/work/data
+      - ./results:/home/jovyan/work/results
+      - model-cache:/home/jovyan/work/models
+    networks:
+      - research-network
+    ports:
+      - "8888:8888"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 2
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  # Auto-scaling Controller
+  autoscaler:
+    build:
+      context: .
+      dockerfile: Dockerfile.research
+      target: autoscaler
+    container_name: vid-autoscaler
+    environment:
+      - SCALING_MODE=aggressive
+      - CHECK_INTERVAL=60
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./src:/app/src:ro
+      - ./logs:/app/logs
+    networks:
+      - research-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+      - scaling-service
+
+  # Security Scanner
+  security-scanner:
+    image: aquasec/trivy:latest
+    container_name: vid-security-scanner
+    command: 
+      - server
+      - --listen
+      - 0.0.0.0:4954
+    volumes:
+      - trivy-cache:/root/.cache
+    networks:
+      - research-network
+    ports:
+      - "4954:4954"
+    restart: unless-stopped
+
+  # Backup Service
+  backup-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
+    container_name: vid-backup-service
+    environment:
+      - BACKUP_SCHEDULE=0 2 * * *  # Daily at 2 AM
+      - RETENTION_DAYS=30
+    volumes:
+      - postgres-data:/backup/postgres:ro
+      - redis-data:/backup/redis:ro
+      - ./results:/backup/results:ro
+      - ./backups:/backups
+    networks:
+      - research-network
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+
+networks:
+  research-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  elasticsearch-data:
+    driver: local
+  minio-data:
+    driver: local
+  model-cache:
+    driver: local
+  adaptive-cache:
+    driver: local
+  metrics-cache:
+    driver: local
+  quantum-cache:
+    driver: local
+  trivy-cache:
+    driver: local
