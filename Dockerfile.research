@@ -1,0 +1,338 @@
+# Multi-stage Dockerfile for Research Framework Deployment
+# Optimized for AI/ML workloads with GPU support and production readiness
+
+ARG PYTHON_VERSION=3.11
+ARG CUDA_VERSION=11.8
+ARG PYTORCH_VERSION=2.1.0
+
+# ============================================================================
+# Base Stage: CUDA-enabled Python environment
+# ============================================================================
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu22.04 as base
+
+ARG PYTHON_VERSION
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    python${PYTHON_VERSION} \
+    python${PYTHON_VERSION}-dev \
+    python${PYTHON_VERSION}-venv \
+    python3-pip \
+    build-essential \
+    cmake \
+    git \
+    curl \
+    wget \
+    unzip \
+    ffmpeg \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    libopenmpi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create symlinks for python
+RUN ln -sf /usr/bin/python${PYTHON_VERSION} /usr/bin/python && \
+    ln -sf /usr/bin/python${PYTHON_VERSION} /usr/bin/python3
+
+# Create non-root user
+RUN groupadd -r research && useradd -r -g research -m -s /bin/bash research
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY requirements-dev.txt requirements.txt ./
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements-dev.txt && \
+    pip install --no-cache-dir -r requirements.txt
+
+# ============================================================================
+# Research Core Stage: Main application with research framework
+# ============================================================================
+FROM base as research-core
+
+# Copy source code
+COPY src/ ./src/
+COPY pyproject.toml ./
+
+# Install the research framework
+RUN pip install --no-cache-dir -e .
+
+# Create necessary directories
+RUN mkdir -p /app/data /app/results /app/logs /app/models /app/cache && \
+    chown -R research:research /app
+
+# Switch to non-root user
+USER research
+
+# Health check script
+COPY --chown=research:research scripts/healthcheck.py ./scripts/
+RUN chmod +x ./scripts/healthcheck.py
+
+# Default command
+CMD ["python", "-m", "vid_diffusion_bench.api.app"]
+
+# ============================================================================
+# Adaptive Service Stage: Specialized for adaptive algorithms
+# ============================================================================
+FROM research-core as adaptive-service
+
+USER root
+
+# Install additional dependencies for adaptive algorithms
+RUN pip install --no-cache-dir \
+    optuna \
+    ray[tune] \
+    hyperopt \
+    bayesian-optimization
+
+USER research
+
+# Adaptive service configuration
+ENV SERVICE_NAME=adaptive-algorithms
+ENV SERVICE_PORT=8001
+
+# Custom entrypoint for adaptive service
+COPY --chown=research:research scripts/adaptive_service_entrypoint.py ./scripts/
+CMD ["python", "./scripts/adaptive_service_entrypoint.py"]
+
+# ============================================================================
+# Metrics Service Stage: Specialized for novel metrics evaluation
+# ============================================================================
+FROM research-core as metrics-service
+
+USER root
+
+# Install additional dependencies for metrics evaluation
+RUN pip install --no-cache-dir \
+    clip-by-openai \
+    sentence-transformers \
+    transformers[torch] \
+    timm \
+    open-clip-torch
+
+USER research
+
+# Metrics service configuration
+ENV SERVICE_NAME=novel-metrics
+ENV SERVICE_PORT=8002
+
+# Custom entrypoint for metrics service
+COPY --chown=research:research scripts/metrics_service_entrypoint.py ./scripts/
+CMD ["python", "./scripts/metrics_service_entrypoint.py"]
+
+# ============================================================================
+# Quantum Service Stage: Specialized for quantum acceleration
+# ============================================================================
+FROM research-core as quantum-service
+
+USER root
+
+# Install quantum computing dependencies
+RUN pip install --no-cache-dir \
+    qiskit \
+    cirq \
+    pennylane \
+    tensornetwork \
+    opt-einsum
+
+USER research
+
+# Quantum service configuration
+ENV SERVICE_NAME=quantum-acceleration
+ENV SERVICE_PORT=8003
+
+# Custom entrypoint for quantum service
+COPY --chown=research:research scripts/quantum_service_entrypoint.py ./scripts/
+CMD ["python", "./scripts/quantum_service_entrypoint.py"]
+
+# ============================================================================
+# Scaling Service Stage: Specialized for intelligent scaling
+# ============================================================================
+FROM research-core as scaling-service
+
+USER root
+
+# Install scaling and monitoring dependencies
+RUN pip install --no-cache-dir \
+    kubernetes \
+    docker \
+    psutil \
+    prometheus-client
+
+# Install Docker CLI for container management
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - && \
+    echo "deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable" | tee /etc/apt/sources.list.d/docker.list && \
+    apt-get update && \
+    apt-get install -y docker-ce-cli && \
+    rm -rf /var/lib/apt/lists/*
+
+USER research
+
+# Scaling service configuration
+ENV SERVICE_NAME=intelligent-scaling
+ENV SERVICE_PORT=8004
+
+# Custom entrypoint for scaling service
+COPY --chown=research:research scripts/scaling_service_entrypoint.py ./scripts/
+CMD ["python", "./scripts/scaling_service_entrypoint.py"]
+
+# ============================================================================
+# Worker Stage: For background processing and experiments
+# ============================================================================
+FROM research-core as worker
+
+USER root
+
+# Install additional worker dependencies
+RUN pip install --no-cache-dir \
+    celery[redis] \
+    rq \
+    dramatiq[redis]
+
+USER research
+
+# Worker configuration
+ENV WORKER_TYPE=experiment
+ENV WORKER_CONCURRENCY=2
+
+# Custom entrypoint for worker
+COPY --chown=research:research scripts/worker_entrypoint.py ./scripts/
+CMD ["python", "./scripts/worker_entrypoint.py"]
+
+# ============================================================================
+# Autoscaler Stage: For automatic scaling decisions
+# ============================================================================
+FROM scaling-service as autoscaler
+
+# Autoscaler configuration
+ENV SERVICE_NAME=autoscaler
+ENV SCALING_MODE=balanced
+ENV CHECK_INTERVAL=60
+
+# Custom entrypoint for autoscaler
+COPY --chown=research:research scripts/autoscaler_entrypoint.py ./scripts/
+CMD ["python", "./scripts/autoscaler_entrypoint.py"]
+
+# ============================================================================
+# Development Stage: Full development environment
+# ============================================================================
+FROM research-core as development
+
+USER root
+
+# Install development tools
+RUN pip install --no-cache-dir \
+    jupyter \
+    jupyterlab \
+    ipywidgets \
+    notebook \
+    pytest-xvfb \
+    black \
+    isort \
+    flake8 \
+    mypy \
+    pre-commit
+
+# Install additional development dependencies
+RUN apt-get update && apt-get install -y \
+    vim \
+    htop \
+    tmux \
+    tree \
+    && rm -rf /var/lib/apt/lists/*
+
+USER research
+
+# Development configuration
+ENV JUPYTER_ENABLE_LAB=yes
+ENV JUPYTER_TOKEN=research_dev_token
+
+# Expose additional ports for development
+EXPOSE 8888 8000-8010
+
+# Development entrypoint
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
+
+# ============================================================================
+# Production Stage: Optimized for production deployment
+# ============================================================================
+FROM research-core as production
+
+USER root
+
+# Production optimizations
+RUN pip install --no-cache-dir \
+    gunicorn \
+    uvicorn[standard] \
+    gevent
+
+# Remove development dependencies and clean up
+RUN apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
+    pip cache purge
+
+# Security hardening
+RUN chmod -R 755 /app && \
+    find /app -type f -name "*.py" -exec chmod 644 {} \;
+
+USER research
+
+# Production configuration
+ENV ENVIRONMENT=production
+ENV WORKERS=4
+ENV WORKER_CLASS=uvicorn.workers.UvicornWorker
+ENV WORKER_CONNECTIONS=1000
+ENV MAX_REQUESTS=1000
+ENV MAX_REQUESTS_JITTER=100
+ENV TIMEOUT=120
+ENV KEEPALIVE=5
+
+# Production entrypoint
+COPY --chown=research:research scripts/production_entrypoint.py ./scripts/
+CMD ["python", "./scripts/production_entrypoint.py"]
+
+# ============================================================================
+# Security scanning stage
+# ============================================================================
+FROM aquasec/trivy:latest as security-scanner
+
+# Copy application for security scanning
+COPY --from=production /app /scan/app
+
+# Run security scan
+RUN trivy fs --exit-code 0 --severity HIGH,CRITICAL /scan/app
+
+# ============================================================================
+# Final stage selection
+# ============================================================================
+FROM production as final
+
+# Metadata
+LABEL maintainer="vid-bench@yourdomain.com"
+LABEL version="1.0.0"
+LABEL description="Video Diffusion Benchmark Suite - Research Framework"
+LABEL org.opencontainers.image.title="vid-diffusion-benchmark-research"
+LABEL org.opencontainers.image.description="Enhanced research framework for video diffusion model benchmarking"
+LABEL org.opencontainers.image.vendor="Terragon Labs"
+LABEL org.opencontainers.image.licenses="MIT"
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python scripts/healthcheck.py || exit 1
+
+# Default ports
+EXPOSE 8000
+
+# Final user and entrypoint
+USER research
+ENTRYPOINT ["python", "./scripts/production_entrypoint.py"]
