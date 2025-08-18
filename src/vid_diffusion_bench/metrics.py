@@ -147,12 +147,15 @@ class CLIPSimilarity:
 class VideoQualityMetrics:
     """Comprehensive video quality evaluation metrics."""
     
-    def __init__(self, device: str = "cuda"):
+    def __init__(self, device: str = "cuda", cache_size: int = 100):
         """Initialize metrics computer.
         
         Args:
-            device: Device for computation
+            device: Computation device ('cuda' or 'cpu')
+            cache_size: Size of computation cache for performance
         """
+        from .generation1_enhancements import BasicCacheManager
+        self.cache = BasicCacheManager(max_size=cache_size)
         self.device = device if torch.cuda.is_available() else "cpu"
         self._setup_models()
         
