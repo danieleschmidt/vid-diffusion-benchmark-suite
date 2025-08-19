@@ -69,6 +69,116 @@ def serve(host: str, port: int, reload: bool, log_level: str):
 
 
 @main.command()
+def list_models():
+    """List all available models."""
+    from .models.registry import list_models
+    
+    models = list_models()
+    if not models:
+        click.echo("No models registered.")
+        return
+        
+    click.echo("Available models:")
+    for model in sorted(models):
+        try:
+            from .models.registry import get_model
+            model_instance = get_model(model)
+            reqs = model_instance.requirements
+            
+            click.echo(f"\n{model}:")
+            click.echo(f"  VRAM: {reqs.get('vram_gb', 'N/A')} GB")
+            click.echo(f"  Precision: {reqs.get('precision', 'N/A')}")
+            click.echo(f"  Model Size: {reqs.get('model_size_gb', 'N/A')} GB")
+            click.echo(f"  Max Frames: {reqs.get('max_frames', 'N/A')}")
+        except Exception as e:
+            click.echo(f"  - {model} (failed to load - {e})")
+
+
+@main.command()
+@click.argument("model_name")
+@click.option("--prompt", default="A cat playing piano", help="Test prompt")
+@click.option("--frames", default=16, help="Number of frames")
+@click.option("--fps", default=8, help="Frames per second")
+def test_model(model_name: str, prompt: str, frames: int, fps: int):
+    """Test a single model with a prompt."""
+    from .models.registry import get_model
+    from .exceptions import ModelNotFoundError
+    
+    try:
+        model = get_model(model_name)
+        click.echo(f"Testing model: {model_name}")
+        click.echo(f"Prompt: {prompt}")
+        
+        import time
+        start_time = time.time()
+        video = model.generate(prompt, num_frames=frames, fps=fps)
+        duration = time.time() - start_time
+        
+        click.echo(f"✅ Generation successful!")
+        click.echo(f"Video shape: {video.shape}")
+        click.echo(f"Duration: {duration:.2f}s")
+        
+    except ModelNotFoundError as e:
+        click.echo(f"❌ {e.message}")
+        if e.available_models:
+            click.echo("Available models:")
+            for model in e.available_models:
+                click.echo(f"  - {model}")
+    except Exception as e:
+        click.echo(f"❌ Error: {str(e)}")
+
+
+@main.command()
+@click.option("--output", type=click.Path(), help="Output file for detailed report")
+def health_check(output: str):
+    """Run system health checks."""
+    import torch
+    import psutil
+    import json
+    from datetime import datetime
+    from .models.registry import list_models
+    
+    health_status = {
+        "timestamp": datetime.now().isoformat(),
+        "system": {
+            "python_version": __import__("sys").version,
+            "pytorch_version": torch.__version__,
+            "cuda_available": torch.cuda.is_available(),
+            "cuda_devices": torch.cuda.device_count() if torch.cuda.is_available() else 0,
+            "cpu_count": psutil.cpu_count(),
+            "memory_gb": round(psutil.virtual_memory().total / (1024**3), 2),
+        },
+        "models": {
+            "registered_count": len(list_models()),
+            "available_models": list(list_models())
+        },
+        "status": "healthy"
+    }
+    
+    if torch.cuda.is_available():
+        for i in range(torch.cuda.device_count()):
+            gpu_props = torch.cuda.get_device_properties(i)
+            health_status["system"][f"gpu_{i}"] = {
+                "name": gpu_props.name,
+                "memory_gb": round(gpu_props.total_memory / (1024**3), 2),
+                "compute_capability": f"{gpu_props.major}.{gpu_props.minor}"
+            }
+    
+    if output:
+        with open(output, 'w') as f:
+            json.dump(health_status, f, indent=2)
+        click.echo(f"Health report saved to {output}")
+    else:
+        click.echo("🏥 System Health Check")
+        click.echo("=" * 30)
+        click.echo(f"Status: {health_status['status']}")
+        click.echo(f"CUDA Available: {health_status['system']['cuda_available']}")
+        click.echo(f"GPU Devices: {health_status['system']['cuda_devices']}")
+        click.echo(f"Registered Models: {health_status['models']['registered_count']}")
+        click.echo(f"Available Memory: {health_status['system']['memory_gb']}GB")
+
+
+@main.command()
 def init_db():
     """Initialize the database with tables and models."""
     from .database.connection import db_manager
@@ -90,32 +200,6 @@ def init_db():
     except Exception as e:
         click.echo(f"Database initialization failed: {e}", err=True)
         raise click.Abort()
-
-
-@main.command()
-def list_models():
-    """List available models."""
-    from .models.registry import list_models
-    from .database.services import ModelService
-    
-    available_models = list_models()
-    
-    click.echo("Available Models:")
-    click.echo("================")
-    
-    for model_name in sorted(available_models):
-        try:
-            from .models.registry import get_model
-            model_instance = get_model(model_name)
-            reqs = model_instance.requirements
-            
-            click.echo(f"\n{model_name}:")
-            click.echo(f"  VRAM: {reqs.get('vram_gb', 'N/A')} GB")
-            click.echo(f"  Precision: {reqs.get('precision', 'N/A')}")
-            click.echo(f"  Model Size: {reqs.get('model_size_gb', 'N/A')} GB")
-            click.echo(f"  Max Frames: {reqs.get('max_frames', 'N/A')}")
-        except Exception as e:
-            click.echo(f"\n{model_name}: (failed to load - {e})")
 
 
 @main.command()
@@ -224,19 +308,6 @@ def compare(models: tuple, prompts: str, output: str, output_format: str):
         _generate_csv_report(results, comparison, output_file)
         
     click.echo(f"✓ Comparison results saved to: {output_file}")
-    
-    # Print summary
-    click.echo("\nSummary:")
-    click.echo("========")
-    
-    if 'rankings' in comparison and 'quality' in comparison['rankings']:
-        click.echo("\nQuality Ranking:")
-        for i, (model, metrics) in enumerate(comparison['rankings']['quality'][:3]):
-            click.echo(f"  {i+1}. {model}: {metrics['quality_score']:.1f}")
-            
-        click.echo("\nSpeed Ranking:")
-        for i, (model, metrics) in enumerate(comparison['rankings']['speed'][:3]):
-            click.echo(f"  {i+1}. {model}: {metrics['latency']:.2f}ms")
 
 
 def _generate_html_report(results, comparison, output_file):
@@ -251,14 +322,12 @@ def _generate_html_report(results, comparison, output_file):
             table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
             th, td {{ border: 1px solid #ddd; padding: 12px; text-align: left; }}
             th {{ background-color: #f2f2f2; }}
-            .metric {{ font-weight: bold; }}
             .model-name {{ color: #2c3e50; font-weight: bold; }}
         </style>
     </head>
     <body>
         <h1>Video Diffusion Model Comparison Report</h1>
-        <p>Generated on: {comparison['timestamp']}</p>
-        <p>Models compared: {comparison['models_compared']}</p>
+        <p>Generated on: {comparison.get('timestamp', 'N/A')}</p>
         
         <h2>Model Performance Summary</h2>
         <table>
@@ -274,7 +343,7 @@ def _generate_html_report(results, comparison, output_file):
     """
     
     for name, result in results.items():
-        if result.metrics and result.performance:
+        if hasattr(result, 'metrics') and result.metrics and hasattr(result, 'performance') and result.performance:
             html_content += f"""
             <tr>
                 <td class="model-name">{name}</td>
@@ -283,7 +352,7 @@ def _generate_html_report(results, comparison, output_file):
                 <td>{result.metrics.get('clip_similarity', 0):.3f}</td>
                 <td>{result.performance.get('avg_latency_ms', 0):.1f}</td>
                 <td>{result.performance.get('peak_vram_gb', 0):.1f}</td>
-                <td>{result.success_rate:.1%}</td>
+                <td>{getattr(result, 'success_rate', 0):.1%}</td>
             </tr>
             """
     
@@ -312,7 +381,7 @@ def _generate_csv_report(results, comparison, output_file):
         
         # Data rows
         for name, result in results.items():
-            if result.metrics and result.performance:
+            if hasattr(result, 'metrics') and result.metrics and hasattr(result, 'performance') and result.performance:
                 writer.writerow([
                     name,
                     f"{result.metrics.get('overall_score', 0):.1f}",
@@ -320,7 +389,7 @@ def _generate_csv_report(results, comparison, output_file):
                     f"{result.metrics.get('clip_similarity', 0):.3f}",
                     f"{result.performance.get('avg_latency_ms', 0):.1f}",
                     f"{result.performance.get('peak_vram_gb', 0):.1f}",
-                    f"{result.success_rate:.1%}"
+                    f"{getattr(result, 'success_rate', 0):.1%}"
                 ])
 
 
@@ -331,7 +400,7 @@ def _generate_csv_report(results, comparison, output_file):
 @click.option("--samples-per-seed", default=5, type=int, help="Samples per seed")
 def research(output_dir: str, models: tuple, seeds: int, samples_per_seed: int):
     """Run research-grade benchmarks with statistical analysis."""
-    from .benchmark import run_research_benchmark
+    from .research_framework import run_research_benchmark
     from .prompts import StandardPrompts
     
     if not models:
@@ -369,70 +438,9 @@ def research(output_dir: str, models: tuple, seeds: int, samples_per_seed: int):
         click.echo(f"\nKey Findings:")
         click.echo(f"  Experiments conducted: {len(exp_result.results)}")
         click.echo(f"  Statistical significance validated: {exp_result.metadata.get('significance_validated', 'Yes')}")
-        click.echo(f"  Reproducibility confirmed: {exp_result.metadata.get('reproducibility_score', 'N/A')}")
         
     except Exception as e:
         click.echo(f"Research benchmark failed: {e}", err=True)
-
-
-if __name__ == "__main__":
-    main()
-    
-    # List registered models
-    registered = list_models()
-    click.echo(f"Registered models ({len(registered)}):")
-    for model in registered:
-        click.echo(f"  - {model}")
-    
-    # List database models
-    try:
-        db_models = ModelService.list_models()
-        click.echo(f"\nDatabase models ({len(db_models)}):")
-        for model in db_models:
-            status = "✓" if model.is_active else "✗"
-            click.echo(f"  {status} {model.name} ({model.model_type})")
-    except Exception as e:
-        click.echo(f"Failed to list database models: {e}", err=True)
-
-
-@main.command()
-def health():
-    """Check system health."""
-    from .database.connection import db_manager
-    from .models.registry import list_models
-    
-    click.echo("Health Check:")
-    click.echo("=" * 40)
-    
-    # Database health
-    try:
-        db_health = db_manager.health_check()
-        status = "✓" if db_health["status"] == "healthy" else "✗"
-        click.echo(f"Database: {status} {db_health['status']}")
-        if "active_connections" in db_health:
-            click.echo(f"  Active connections: {db_health['active_connections']}")
-        if "database_size" in db_health:
-            click.echo(f"  Database size: {db_health['database_size']}")
-    except Exception as e:
-        click.echo(f"Database: ✗ Error - {e}")
-    
-    # Models health
-    try:
-        models = list_models()
-        click.echo(f"Models: ✓ {len(models)} registered")
-    except Exception as e:
-        click.echo(f"Models: ✗ Error - {e}")
-    
-    # GPU health
-    try:
-        import torch
-        if torch.cuda.is_available():
-            gpu_count = torch.cuda.device_count()
-            click.echo(f"GPU: ✓ {gpu_count} device(s) available")
-        else:
-            click.echo("GPU: ✗ CUDA not available")
-    except Exception as e:
-        click.echo(f"GPU: ✗ Error - {e}")
 
 
 if __name__ == "__main__":
