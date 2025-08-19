@@ -63,6 +63,11 @@ class BenchmarkResult:
         successful_results = len([r for r in self.results.values() 
                                 if r.get("status") == "success"])
         return successful_results / total_prompts
+    
+    @property
+    def success_rate(self) -> float:
+        """Property accessor for success rate."""
+        return self.get_success_rate()
         
     def to_dict(self) -> Dict[str, Any]:
         """Export results to dictionary format."""
@@ -712,16 +717,95 @@ class BenchmarkSuite:
                 return cached_model
         
         # Load model normally
-        if model_name not in self._models:
-            logger.info(f"Loading model {model_name}")
+        try:
             model = get_model(model_name, device=self.device)
-            self._models[model_name] = model
             
-            # Cache in intelligent cache if available
+            # Cache if intelligent cache available
             if hasattr(self, 'intelligent_cache') and self.intelligent_cache:
-                self.intelligent_cache.set(f"model_{model_name}", model, ttl=3600)  # 1 hour TTL
+                self.intelligent_cache.set(f"model_{model_name}", model)
                 
-        return self._models[model_name]
+            logger.info(f"Model {model_name} loaded successfully")
+            return model
+            
+        except Exception as e:
+            logger.error(f"Failed to load model {model_name}: {e}")
+            raise
+    
+    def evaluate_multiple_models(
+        self,
+        model_names: List[str],
+        prompts: List[str],
+        max_workers: int = 2,
+        **kwargs
+    ) -> Dict[str, BenchmarkResult]:
+        """Evaluate multiple models in parallel."""
+        results = {}
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_model = {
+                executor.submit(self.evaluate_model, model_name, prompts, **kwargs): model_name
+                for model_name in model_names
+            }
+            
+            for future in as_completed(future_to_model):
+                model_name = future_to_model[future]
+                try:
+                    results[model_name] = future.result()
+                    logger.info(f"Completed evaluation for {model_name}")
+                except Exception as e:
+                    logger.error(f"Evaluation failed for {model_name}: {e}")
+                    # Create empty result with error
+                    result = BenchmarkResult(model_name, prompts)
+                    result.add_error(0, e)
+                    results[model_name] = result
+        
+        return results
+    
+    def compare_models(self, results: Dict[str, BenchmarkResult]) -> Dict[str, Any]:
+        """Compare multiple model results."""
+        if not results:
+            return {"error": "No results to compare"}
+        
+        comparison = {
+            "timestamp": datetime.now().isoformat(),
+            "models_compared": len(results),
+            "model_names": list(results.keys()),
+            "summary": {}
+        }
+        
+        # Calculate summary statistics
+        successful_models = {name: result for name, result in results.items() 
+                           if result.success_rate > 0}
+        
+        if successful_models:
+            # Quality rankings
+            quality_scores = {}
+            efficiency_scores = {}
+            
+            for name, result in successful_models.items():
+                if result.metrics:
+                    quality_scores[name] = result.metrics.get('overall_score', 0)
+                if result.performance:
+                    efficiency_scores[name] = result.performance.get('efficiency_score', 0)
+            
+            # Sort by scores
+            quality_ranking = sorted(quality_scores.items(), key=lambda x: x[1], reverse=True)
+            efficiency_ranking = sorted(efficiency_scores.items(), key=lambda x: x[1], reverse=True)
+            
+            comparison["rankings"] = {
+                "quality": [(name, results[name].metrics) for name, _ in quality_ranking],
+                "efficiency": [(name, results[name].performance) for name, _ in efficiency_ranking]
+            }
+            
+            # Summary stats
+            comparison["summary"] = {
+                "best_quality": quality_ranking[0] if quality_ranking else None,
+                "best_efficiency": efficiency_ranking[0] if efficiency_ranking else None,
+                "avg_success_rate": sum(r.success_rate for r in successful_models.values()) / len(successful_models),
+                "total_successful": len(successful_models)
+            }
+        
+        return comparison
         
     def _generate_videos(self, model: ModelAdapter, result: BenchmarkResult,
                         prompts: List[str], num_frames: int, fps: int,

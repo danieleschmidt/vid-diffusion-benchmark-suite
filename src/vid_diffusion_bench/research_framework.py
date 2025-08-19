@@ -901,3 +901,146 @@ class ComparativeStudyManager:
     def _run_mann_whitney(self, group1: List[float], group2: List[float]) -> Dict[str, Any]:
         """Run Mann-Whitney U test."""
         return self._run_statistical_test(group1, group2, "mann_whitney")
+
+
+def run_research_benchmark(
+    model_names: List[str],
+    prompts: List[str],
+    num_seeds: int = 3,
+    output_dir: str = "./research"
+) -> Dict[str, Any]:
+    """Run research-grade benchmark with statistical analysis.
+    
+    Args:
+        model_names: List of model names to evaluate
+        prompts: List of prompts for evaluation
+        num_seeds: Number of random seeds for reproducibility
+        output_dir: Directory to save research results
+        
+    Returns:
+        Dictionary containing research results and experiment data
+    """
+    from .benchmark import BenchmarkSuite
+    import random
+    
+    # Initialize research framework
+    study_manager = ComparativeStudyManager(output_dir)
+    
+    # Create research hypothesis
+    hypothesis = ResearchHypothesis(
+        hypothesis_id="model_comparison_h1",
+        title="Video Generation Model Performance Comparison",
+        description="Comparing video generation quality and efficiency across multiple models",
+        null_hypothesis="There are no significant differences between video generation models",
+        alternative_hypothesis="Some models perform significantly better than others",
+        metrics_to_evaluate=["fvd", "clip_similarity", "generation_time"],
+        expected_direction="bidirectional",
+        significance_level=0.05
+    )
+    
+    # Set up experimental conditions
+    conditions = []
+    for model_name in model_names:
+        condition = ExperimentalCondition(
+            condition_id=f"model_{model_name}",
+            name=model_name,
+            description=f"Evaluation of {model_name} video generation model",
+            parameters={"model_name": model_name}
+        )
+        conditions.append(condition)
+    
+    # Create experiment
+    experiment_id = study_manager.create_experiment(
+        hypothesis=hypothesis,
+        conditions=conditions,
+        metadata={
+            "num_seeds": num_seeds,
+            "num_prompts": len(prompts),
+            "experimental_design": "factorial"
+        }
+    )
+    
+    # Initialize benchmark suite
+    benchmark = BenchmarkSuite(output_dir=output_dir)
+    
+    # Run experiments with multiple seeds
+    all_results = []
+    seeds = [42 + i for i in range(num_seeds)]  # Reproducible seeds
+    
+    for seed in seeds:
+        # Set random seed for reproducibility
+        random.seed(seed)
+        np.random.seed(seed)
+        
+        logger.info(f"Running experiment with seed {seed}")
+        
+        # Evaluate each model
+        for condition in conditions:
+            model_name = condition.parameters["model_name"]
+            
+            try:
+                # Run benchmark
+                result = benchmark.evaluate_model(
+                    model_name=model_name,
+                    prompts=prompts,
+                    num_frames=16,
+                    fps=8
+                )
+                
+                # Convert to research result
+                research_result = ExperimentResult(
+                    experiment_id=experiment_id,
+                    condition_id=condition.condition_id,
+                    algorithm_name=model_name,
+                    success=result.success_rate > 0,
+                    metrics={
+                        "fvd": result.metrics.get("fvd", 0) if result.metrics else 0,
+                        "clip_similarity": result.metrics.get("clip_similarity", 0) if result.metrics else 0,
+                        "generation_time": result.performance.get("avg_latency_ms", 0) / 1000 if result.performance else 0,
+                        "success_rate": result.success_rate
+                    },
+                    metadata={
+                        "seed": seed,
+                        "model_name": model_name,
+                        "num_prompts": len(prompts)
+                    },
+                    duration=sum(r.get("generation_time", 0) for r in result.results.values()),
+                    timestamp=time.time()
+                )
+                
+                study_manager.results[experiment_id].append(research_result)
+                all_results.append(research_result)
+                
+                logger.info(f"Completed evaluation: {model_name} (seed {seed})")
+                
+            except Exception as e:
+                logger.error(f"Failed to evaluate {model_name} with seed {seed}: {e}")
+                # Add failed result
+                failed_result = ExperimentResult(
+                    experiment_id=experiment_id,
+                    condition_id=condition.condition_id,
+                    algorithm_name=model_name,
+                    success=False,
+                    metrics={},
+                    metadata={"seed": seed, "error": str(e)},
+                    duration=0,
+                    timestamp=time.time()
+                )
+                study_manager.results[experiment_id].append(failed_result)
+    
+    # Run statistical analysis
+    report = study_manager.run_comparative_analysis(experiment_id)
+    
+    # Generate publication-ready report
+    publication_report = study_manager.generate_publication_report(experiment_id)
+    
+    return {
+        "experiment_id": experiment_id,
+        "experiment_result": report,
+        "publication_report": publication_report,
+        "research_data_path": str(study_manager.output_dir),
+        "total_evaluations": len(all_results),
+        "successful_evaluations": sum(1 for r in all_results if r.success),
+        "models_evaluated": model_names,
+        "statistical_significance": report.get("hypothesis_evaluation", {}).get("hypothesis_supported", False)
+    }
