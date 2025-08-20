@@ -3,8 +3,14 @@
 import logging
 import time
 from typing import Dict, Any
-import torch
-import torch.nn.functional as F
+try:
+    import torch
+    import torch.nn.functional as F
+    TORCH_AVAILABLE = True
+except ImportError:
+    from ..mock_torch import torch, MockF as F
+    TORCH_AVAILABLE = False
+
 import numpy as np
 
 from .base import ModelAdapter

@@ -36,12 +36,59 @@ def evaluate(model: str, prompts: str, output: str):
 
 
 @main.command()
-@click.option("--models", default="all", help="Models to benchmark")
+@click.option("--models", default="all", help="Models to benchmark (comma-separated or 'all')")
 @click.option("--output", required=True, type=click.Path(), help="Output file")
-def benchmark(models: str, output: str):
+@click.option("--prompts", default="standard", help="Prompt set: standard, diverse, custom")
+@click.option("--parallel", default=2, help="Number of parallel evaluations")
+@click.option("--timeout", default=300, help="Timeout per model in seconds")
+def benchmark(models: str, output: str, prompts: str, parallel: int, timeout: int):
     """Run full benchmark suite."""
-    click.echo(f"Running benchmark for models: {models}")
-    click.echo(f"Results will be saved to: {output}")
+    from .models.registry import list_models
+    from .prompts import StandardPrompts
+    import json
+    from datetime import datetime
+    
+    # Parse model list
+    if models == "all":
+        model_list = list_models()
+    else:
+        model_list = [m.strip() for m in models.split(",")]
+    
+    # Select prompt set
+    if prompts == "diverse":
+        prompt_list = StandardPrompts.DIVERSE_SET_V2
+    elif prompts == "standard":
+        prompt_list = StandardPrompts.DIVERSE_SET_V2[:10]  # First 10
+    else:
+        prompt_list = [prompts]
+    
+    click.echo(f"🚀 Running benchmark for {len(model_list)} models")
+    click.echo(f"📝 Using {len(prompt_list)} prompts")
+    click.echo(f"⚡ Parallel jobs: {parallel}")
+    
+    suite = BenchmarkSuite()
+    results = {
+        "timestamp": datetime.now().isoformat(),
+        "models": {},
+        "summary": {}
+    }
+    
+    for i, model_name in enumerate(model_list, 1):
+        click.echo(f"\n[{i}/{len(model_list)}] Evaluating {model_name}...")
+        try:
+            model_results = suite.evaluate_model(model_name, prompt_list, timeout=timeout)
+            results["models"][model_name] = model_results
+            click.echo(f"✅ {model_name}: FVD={model_results.get('fvd', 'N/A'):.2f}")
+        except Exception as e:
+            click.echo(f"❌ {model_name}: {str(e)}")
+            results["models"][model_name] = {"error": str(e)}
+    
+    # Save results
+    Path(output).parent.mkdir(parents=True, exist_ok=True)
+    with open(output, 'w') as f:
+        json.dump(results, f, indent=2)
+    
+    click.echo(f"\n📊 Results saved to: {output}")
 
 
 @main.command()
@@ -126,6 +173,151 @@ def test_model(model_name: str, prompt: str, frames: int, fps: int):
                 click.echo(f"  - {model}")
     except Exception as e:
         click.echo(f"❌ Error: {str(e)}")
+
+
+@main.command()
+@click.option("--models", default="all", help="Models to compare (comma-separated)")
+@click.option("--prompts", default="standard", help="Prompt set for comparison")
+@click.option("--output", type=click.Path(), help="Output comparison report")
+@click.option("--metrics", default="fvd,latency,vram", help="Metrics to compare")
+def compare(models: str, prompts: str, output: str, metrics: str):
+    """Compare multiple models side-by-side."""
+    from .models.registry import list_models
+    from .prompts import StandardPrompts
+    import json
+    from datetime import datetime
+    
+    # Parse models
+    if models == "all":
+        model_list = list_models()[:5]  # Limit to 5 for comparison
+    else:
+        model_list = [m.strip() for m in models.split(",")]
+    
+    if len(model_list) < 2:
+        click.echo("❌ Need at least 2 models for comparison")
+        return
+    
+    # Select prompts
+    if prompts == "standard":
+        prompt_list = StandardPrompts.DIVERSE_SET_V2[:5]
+    else:
+        prompt_list = [prompts]
+    
+    click.echo(f"🔄 Comparing {len(model_list)} models on {len(prompt_list)} prompts")
+    
+    suite = BenchmarkSuite()
+    comparison_results = {
+        "timestamp": datetime.now().isoformat(),
+        "models": model_list,
+        "prompts": prompt_list,
+        "results": {},
+        "ranking": {}
+    }
+    
+    # Evaluate each model
+    for model_name in model_list:
+        click.echo(f"Evaluating {model_name}...")
+        try:
+            results = suite.evaluate_model(model_name, prompt_list)
+            comparison_results["results"][model_name] = results
+        except Exception as e:
+            click.echo(f"❌ {model_name}: {str(e)}")
+    
+    # Display comparison table
+    click.echo("\n📊 COMPARISON RESULTS")
+    click.echo("=" * 80)
+    click.echo(f"{'Model':<20} {'FVD':<10} {'Latency(s)':<12} {'VRAM(GB)':<10} {'Score':<8}")
+    click.echo("-" * 80)
+    
+    for model_name in model_list:
+        if model_name in comparison_results["results"]:
+            r = comparison_results["results"][model_name]
+            fvd = r.get("fvd", "N/A")
+            latency = r.get("latency", "N/A")
+            vram = r.get("vram_gb", "N/A")
+            score = r.get("overall_score", "N/A")
+            click.echo(f"{model_name:<20} {fvd:<10} {latency:<12} {vram:<10} {score:<8}")
+    
+    # Save detailed results
+    if output:
+        Path(output).parent.mkdir(parents=True, exist_ok=True)
+        with open(output, 'w') as f:
+            json.dump(comparison_results, f, indent=2)
+        click.echo(f"\n📄 Detailed results saved to: {output}")
+
+
+@main.command()
+@click.option("--experiment", required=True, help="Research experiment name")
+@click.option("--hypothesis", required=True, help="Research hypothesis to test")
+@click.option("--models", default="all", help="Models for research study")
+@click.option("--dataset", default="standard", help="Dataset/prompts for evaluation")
+@click.option("--runs", default=3, help="Number of runs for statistical significance")
+@click.option("--output-dir", type=click.Path(), help="Output directory for research results")
+def research(experiment: str, hypothesis: str, models: str, dataset: str, runs: int, output_dir: str):
+    """Run research-grade benchmarking with statistical analysis."""
+    from .research_framework import ResearchFramework
+    from .models.registry import list_models
+    from datetime import datetime
+    
+    click.echo(f"🔬 Starting research experiment: {experiment}")
+    click.echo(f"💡 Hypothesis: {hypothesis}")
+    
+    # Setup research framework
+    framework = ResearchFramework(
+        experiment_name=experiment,
+        hypothesis=hypothesis,
+        output_dir=output_dir or f"research/{experiment}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    )
+    
+    # Parse models
+    if models == "all":
+        model_list = list_models()
+    else:
+        model_list = [m.strip() for m in models.split(",")]
+    
+    click.echo(f"📋 Models: {', '.join(model_list)}")
+    click.echo(f"🔄 Runs per model: {runs}")
+    
+    # Run research study
+    try:
+        results = framework.run_experiment(
+            models=model_list,
+            dataset=dataset,
+            num_runs=runs
+        )
+        
+        click.echo(f"\n📊 RESEARCH RESULTS")
+        click.echo("=" * 60)
+        
+        if results.get("statistical_significance"):
+            click.echo("✅ Statistically significant results found!")
+        else:
+            click.echo("⚠️  Results not statistically significant")
+        
+        click.echo(f"📈 Best performing model: {results.get('best_model', 'Unknown')}")
+        click.echo(f"📉 P-value: {results.get('p_value', 'N/A')}")
+        
+        # Generate publication-ready report
+        report_path = framework.generate_publication_report()
+        click.echo(f"📝 Publication report: {report_path}")
+        
+    except Exception as e:
+        click.echo(f"❌ Research experiment failed: {str(e)}")
+
+
+@main.command()
+@click.option("--db-url", help="Database URL (defaults to local SQLite)")
+def init_db(db_url: str):
+    """Initialize the benchmark database."""
+    from .database.connection import init_database
+    
+    click.echo("🗄️  Initializing benchmark database...")
+    
+    try:
+        init_database(db_url)
+        click.echo("✅ Database initialized successfully!")
+    except Exception as e:
+        click.echo(f"❌ Database initialization failed: {str(e)}")
 
 
 @main.command()
