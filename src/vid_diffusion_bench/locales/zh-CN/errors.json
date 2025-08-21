@@ -1,0 +1,12 @@
+{
+  "model_not_found": "模型未找到：{model_name}",
+  "validation_error": "{field} 验证错误：{message}",
+  "resource_error": "资源错误：{resource_type} 不足",
+  "generation_failed": "视频生成失败：{error}",
+  "benchmark_timeout": "基准测试超时",
+  "cuda_oom": "CUDA 内存不足",
+  "file_not_found": "文件未找到：{file_path}",
+  "invalid_config": "配置无效：{config_name}",
+  "network_error": "网络错误：{message}",
+  "permission_denied": "权限被拒绝：{resource}"
+}

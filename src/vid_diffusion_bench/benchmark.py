@@ -8,7 +8,13 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Dict, List, Optional, Union, Any
 from datetime import datetime
-import torch
+try:
+    import torch
+    TORCH_AVAILABLE = True
+except ImportError:
+    from .mock_torch import torch
+    TORCH_AVAILABLE = False
+
 import psutil
 import numpy as np
 from pathlib import Path

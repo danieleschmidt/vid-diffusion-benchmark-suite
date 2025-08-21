@@ -1,0 +1,12 @@
+{
+  "model_not_found": "Modelo no encontrado: {model_name}",
+  "validation_error": "Error de validación en {field}: {message}",
+  "resource_error": "Error de recursos: {resource_type} insuficiente",
+  "generation_failed": "La generación de video falló: {error}",
+  "benchmark_timeout": "Tiempo de espera agotado para el benchmark",
+  "cuda_oom": "Memoria CUDA insuficiente",
+  "file_not_found": "Archivo no encontrado: {file_path}",
+  "invalid_config": "Configuración inválida: {config_name}",
+  "network_error": "Error de red: {message}",
+  "permission_denied": "Permisos denegados para {resource}"
+}
