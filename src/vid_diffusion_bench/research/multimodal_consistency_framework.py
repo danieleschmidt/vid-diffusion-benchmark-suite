@@ -1336,19 +1336,19 @@ async def run_multimodal_consistency_example():
         scenarios = [
             {
                 "name": "Consistent Scenario",
-                "video": np.random.randint(0, 255, (20, 64, 64, 3), dtype=np.uint8),
+                "video": np.secrets.SystemRandom().randint(0, 255, (20, 64, 64, 3), dtype=np.uint8),
                 "text": "A red ball rolling down a hill in a sunny day",
                 "expected_consistency": "high"
             },
             {
                 "name": "Moderately Consistent",
-                "video": np.random.randint(0, 255, (25, 128, 128, 3), dtype=np.uint8),
+                "video": np.secrets.SystemRandom().randint(0, 255, (25, 128, 128, 3), dtype=np.uint8),
                 "text": "A person walking in a park with trees and flowers",
                 "expected_consistency": "moderate"
             },
             {
                 "name": "Inconsistent Scenario",
-                "video": np.random.randint(0, 255, (15, 64, 64, 3), dtype=np.uint8),
+                "video": np.secrets.SystemRandom().randint(0, 255, (15, 64, 64, 3), dtype=np.uint8),
                 "text": "A spaceship flying through a nebula with purple clouds",
                 "expected_consistency": "low"
             }

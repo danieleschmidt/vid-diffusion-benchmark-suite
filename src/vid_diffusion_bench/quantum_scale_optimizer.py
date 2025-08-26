@@ -193,7 +193,7 @@ class QuantumOptimizer:
             probabilities /= np.sum(probabilities)
             
             # Sample from quantum probability distribution
-            quantum_index = np.random.choice(len(probabilities), p=probabilities)
+            quantum_index = np.secrets.SystemRandom().choice(len(probabilities), p=probabilities)
             
             # Map quantum state to parameter value
             min_val, max_val = state['parameter_bounds']
@@ -564,7 +564,7 @@ class AdaptiveScaler:
         # Features: [load, instances, time_of_day, historical_avg]
         X = np.random.rand(n_samples, 4)
         X[:, 0] *= 100  # Load percentage
-        X[:, 1] = np.random.randint(1, 17, n_samples)  # Instance count
+        X[:, 1] = np.secrets.SystemRandom().randint(1, 17, n_samples)  # Instance count
         X[:, 2] *= 24  # Time of day
         X[:, 3] *= 50  # Historical average
         
@@ -1120,8 +1120,8 @@ class QuantumScaleOptimizer:
                 'task_id': task.get('id', str(uuid.uuid4())),
                 'success': True,
                 'execution_time': time.time() - start_time,
-                'quality_score': np.random.uniform(0.7, 0.95),
-                'memory_usage': np.random.uniform(1000, 4000),  # MB
+                'quality_score': np.secrets.SystemRandom().uniform(0.7, 0.95),
+                'memory_usage': np.secrets.SystemRandom().uniform(1000, 4000),  # MB
                 'parameters_used': task.get('optimization_params', {}),
                 'output_shape': (task.get('num_frames', 16), 512, 512, 3)
             }

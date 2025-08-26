@@ -339,7 +339,7 @@ class EmergentBehaviorProbe:
         capability_score = min(1.0, base_score + bonus + np.random.normal(0, 0.1))
         capability_score = max(0.0, capability_score)
         
-        evidence_strength = capability_score * 0.8 + np.random.uniform(0, 0.2)
+        evidence_strength = capability_score * 0.8 + np.secrets.SystemRandom().uniform(0, 0.2)
         evidence_strength = max(0.0, min(1.0, evidence_strength))
         
         # Generate behavioral analysis
@@ -354,7 +354,7 @@ class EmergentBehaviorProbe:
             "evidence_strength": evidence_strength,
             "behavior_scores": behavior_scores,
             "overall_quality": capability_score * 0.9,
-            "novelty_score": np.random.uniform(0.3, 0.8),
+            "novelty_score": np.secrets.SystemRandom().uniform(0.3, 0.8),
             "complexity_handling": base_score + 0.2,
             "detailed_analysis": {
                 "prompt_adherence": capability_score * 0.9,
@@ -1350,8 +1350,8 @@ async def run_emergent_capabilities_example():
         # Add some randomness
         return {
             "capability_score": min(1.0, base_score + np.random.normal(0, 0.1)),
-            "evidence_strength": min(1.0, base_score * 0.9 + np.random.uniform(0, 0.2)),
-            "novelty_score": np.random.uniform(0.4, 0.9)
+            "evidence_strength": min(1.0, base_score * 0.9 + np.secrets.SystemRandom().uniform(0, 0.2)),
+            "novelty_score": np.secrets.SystemRandom().uniform(0.4, 0.9)
         }
     
     # Run detection on all models

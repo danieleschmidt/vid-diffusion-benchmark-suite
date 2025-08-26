@@ -730,7 +730,7 @@ class AdaptiveOptimizer:
             # Random step count variation
             current_steps = current_params.get("num_inference_steps", 50)
             candidate["num_inference_steps"] = max(10, min(100, 
-                current_steps + np.random.randint(-15, 16)))
+                current_steps + np.secrets.SystemRandom().randint(-15, 16)))
             
             # Random guidance variation
             current_guidance = current_params.get("guidance_scale", 7.5)
@@ -738,7 +738,7 @@ class AdaptiveOptimizer:
                 current_guidance + np.random.normal(0, 2)))
             
             # Random eta variation
-            candidate["eta"] = max(0.0, min(1.0, np.random.uniform(0, 1)))
+            candidate["eta"] = max(0.0, min(1.0, np.secrets.SystemRandom().uniform(0, 1)))
             
             candidates.append(candidate)
         
@@ -886,7 +886,7 @@ class AdaptiveOptimizer:
         
         # Create inference metrics
         inference_metrics = InferenceMetrics(
-            inference_id=f"inf_{int(time.time() * 1000)}_{np.random.randint(1000, 9999)}",
+            inference_id=f"inf_{int(time.time() * 1000)}_{np.secrets.SystemRandom().randint(1000, 9999)}",
             timestamp=time.time(),
             latency_ms=latency_ms,
             memory_peak_mb=memory_mb,

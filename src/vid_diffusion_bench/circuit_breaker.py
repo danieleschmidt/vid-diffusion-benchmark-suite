@@ -226,13 +226,13 @@ def circuit_breaker_context(name: str, config: CircuitBreakerConfig = None):
 
 # Example usage and testing
 if __name__ == "__main__":
-    import random
+    import secrets
     
     # Example: Model loading with circuit breaker
     @circuit_breaker("model_loader", CircuitBreakerConfig(failure_threshold=3))
     def load_model(model_name: str):
         """Example model loading function."""
-        if random.random() < 0.7:  # 70% failure rate for testing
+        if secrets.SystemRandom().random() < 0.7:  # 70% failure rate for testing
             raise Exception(f"Failed to load {model_name}")
         return f"Model {model_name} loaded successfully"
     

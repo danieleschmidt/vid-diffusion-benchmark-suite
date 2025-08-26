@@ -454,6 +454,7 @@ class SecurityGate(QualityGate):
             (r'eval\s*\(', "Use of eval() function", "high"),
             (r'exec\s*\(', "Use of exec() function", "high"),
         # SECURITY: pickle.loads() can execute arbitrary code. Only use with trusted data.
+        # SECURITY: pickle.loads() can execute arbitrary code. Only use with trusted data.
             (r'pickle\.loads\s*\(', "Use of pickle.loads()", "medium"),
             (r'subprocess\.call\s*\(.*shell\s*=\s*True', "Shell injection risk", "high"),
             (r'os\.system\s*\(', "Use of os.system()", "high"),
