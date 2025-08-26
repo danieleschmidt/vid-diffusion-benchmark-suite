@@ -76,7 +76,7 @@ class QuantumAnnealingOptimizer(QuantumInspiredOptimizer):
         # Initialize random state in parameter space
         current_params = {}
         for param_name, (min_val, max_val) in parameter_space.items():
-            current_params[param_name] = np.random.uniform(min_val, max_val)
+            current_params[param_name] = np.secrets.SystemRandom().uniform(min_val, max_val)
         
         current_energy = objective_function(current_params)
         best_params = current_params.copy()
@@ -110,7 +110,7 @@ class QuantumAnnealingOptimizer(QuantumInspiredOptimizer):
             
             # Quantum-inspired acceptance criterion
             energy_diff = new_energy - current_energy
-            if energy_diff < 0 or self._quantum_acceptance_probability(energy_diff, temperature) > np.random.random():
+            if energy_diff < 0 or self._quantum_acceptance_probability(energy_diff, temperature) > np.secrets.SystemRandom().random():
                 current_params = new_params
                 current_energy = new_energy
                 convergence_steps += 1
@@ -154,7 +154,7 @@ class QuantumAnnealingOptimizer(QuantumInspiredOptimizer):
         tunneling_distance = self.tunneling_strength * range_size * temperature
         
         # Bimodal perturbation to simulate tunneling through barriers
-        if np.random.random() < 0.3:  # Tunneling event
+        if np.secrets.SystemRandom().random() < 0.3:  # Tunneling event
             return np.random.normal(0, tunneling_distance * 2)
         else:  # Classical perturbation
             return np.random.normal(0, tunneling_distance * 0.5)
@@ -457,7 +457,7 @@ class QuantumClassicalHybridOptimizer:
         # Simple gradient descent with momentum
         current_params = {}
         for param_name, (min_val, max_val) in parameter_space.items():
-            current_params[param_name] = np.random.uniform(min_val, max_val)
+            current_params[param_name] = np.secrets.SystemRandom().uniform(min_val, max_val)
         
         best_params = current_params.copy()
         best_energy = objective_function(current_params)

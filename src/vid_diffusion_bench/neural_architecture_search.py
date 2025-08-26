@@ -149,13 +149,13 @@ class ArchitectureSearchSpace:
         
         # Choose random parameter set
         param_choices = self.component_choices[component_type]
-        param_set = np.random.choice(param_choices)
+        param_set = np.secrets.SystemRandom().choice(param_choices)
         
         # Sample specific parameters
         sampled_params = {}
         for param_name, choices in param_set.items():
             if isinstance(choices, list):
-                sampled_params[param_name] = np.random.choice(choices)
+                sampled_params[param_name] = np.secrets.SystemRandom().choice(choices)
             else:
                 sampled_params[param_name] = choices
         
@@ -350,7 +350,7 @@ class DifferentiableNAS:
             population_size: Size of architecture population
         """
         start_time = time.time()
-        search_id = f"dnas_{int(time.time())}_{np.random.randint(1000, 9999)}"
+        search_id = f"dnas_{int(time.time())}_{np.secrets.SystemRandom().randint(1000, 9999)}"
         
         self.logger.info(f"Starting differentiable NAS with {max_epochs} epochs, population {population_size}")
         
@@ -416,11 +416,11 @@ class DifferentiableNAS:
             current_shape = (1, 64, 64, 64)  # Example shape: (batch, channels, height, width)
             
             # Add 5-15 components randomly
-            num_components = np.random.randint(5, 16)
+            num_components = np.secrets.SystemRandom().randint(5, 16)
             
             for j in range(num_components):
                 # Randomly choose component type
-                component_type = np.random.choice(list(ArchitectureComponentType))
+                component_type = np.secrets.SystemRandom().choice(list(ArchitectureComponentType))
                 
                 if component_type in self.search_space.component_choices:
                     component = self.search_space.sample_component(component_type, current_shape)
@@ -537,11 +537,11 @@ class DifferentiableNAS:
         while len(new_population) < population_size:
             if len(new_population) % 2 == 0 and len(elite_architectures) >= 2:
                 # Crossover
-                parent1, parent2 = np.random.choice(elite_architectures, 2, replace=False)
+                parent1, parent2 = np.secrets.SystemRandom().choice(elite_architectures, 2, replace=False)
                 offspring = await self._crossover_architectures(parent1, parent2)
             else:
                 # Mutation
-                parent = np.random.choice(elite_architectures)
+                parent = np.secrets.SystemRandom().choice(elite_architectures)
                 offspring = await self._mutate_architecture(parent)
             
             new_population.append(offspring)
@@ -557,9 +557,9 @@ class DifferentiableNAS:
         
         # Randomly select subset of components
         num_components = min(len(all_components), 
-                           np.random.randint(5, 16))
+                           np.secrets.SystemRandom().randint(5, 16))
         
-        selected_components = np.random.choice(all_components, num_components, replace=False).tolist()
+        selected_components = np.secrets.SystemRandom().choice(all_components, num_components, replace=False).tolist()
         
         # Create new connections
         connections = []
@@ -589,7 +589,7 @@ class DifferentiableNAS:
         mutation_rate = 0.3
         
         for i, component in enumerate(new_components):
-            if np.random.random() < mutation_rate:
+            if np.secrets.SystemRandom().random() < mutation_rate:
                 # Mutate this component
                 current_shape = component.input_shape
                 mutated_component = self.search_space.sample_component(
@@ -599,17 +599,17 @@ class DifferentiableNAS:
                 new_components[i] = mutated_component
         
         # Possibly add or remove components
-        if np.random.random() < 0.2 and len(new_components) < 20:
+        if np.secrets.SystemRandom().random() < 0.2 and len(new_components) < 20:
             # Add component
-            random_type = np.random.choice(list(ArchitectureComponentType))
+            random_type = np.secrets.SystemRandom().choice(list(ArchitectureComponentType))
             if random_type in self.search_space.component_choices:
                 new_shape = new_components[-1].output_shape if new_components else (1, 64, 64, 64)
                 new_component = self.search_space.sample_component(random_type, new_shape)
                 new_components.append(new_component)
         
-        elif np.random.random() < 0.1 and len(new_components) > 5:
+        elif np.secrets.SystemRandom().random() < 0.1 and len(new_components) > 5:
             # Remove component
-            remove_idx = np.random.randint(len(new_components))
+            remove_idx = np.secrets.SystemRandom().randint(len(new_components))
             new_components.pop(remove_idx)
         
         # Update connections
@@ -696,7 +696,7 @@ class EvolutionaryNAS:
             crossover_rate: Probability of crossover
         """
         start_time = time.time()
-        search_id = f"enas_{int(time.time())}_{np.random.randint(1000, 9999)}"
+        search_id = f"enas_{int(time.time())}_{np.secrets.SystemRandom().randint(1000, 9999)}"
         
         self.logger.info(f"Starting evolutionary NAS: {generations} generations, population {population_size}")
         
@@ -759,7 +759,7 @@ class EvolutionaryNAS:
         ]
         
         for i in range(population_size):
-            pattern = np.random.choice(patterns)
+            pattern = np.secrets.SystemRandom().choice(patterns)
             architecture = await self._generate_architecture_with_pattern(pattern, i)
             population.append(architecture)
         
@@ -827,7 +827,7 @@ class EvolutionaryNAS:
             
             # Then spatial processing
             for layer in range(5):
-                comp_type = np.random.choice([
+                comp_type = np.secrets.SystemRandom().choice([
                     ArchitectureComponentType.CONVOLUTION_BLOCK,
                     ArchitectureComponentType.ATTENTION_BLOCK
                 ])
@@ -838,7 +838,7 @@ class EvolutionaryNAS:
         else:  # spatial_first
             # Focus on spatial processing first
             for layer in range(5):
-                comp_type = np.random.choice([
+                comp_type = np.secrets.SystemRandom().choice([
                     ArchitectureComponentType.CONVOLUTION_BLOCK,
                     ArchitectureComponentType.ATTENTION_BLOCK
                 ])
@@ -934,7 +934,7 @@ class EvolutionaryNAS:
         tournament_size = 5
         
         while len(new_population) < population_size:
-            if np.random.random() < crossover_rate and len(evaluated_population) >= 2:
+            if np.secrets.SystemRandom().random() < crossover_rate and len(evaluated_population) >= 2:
                 # Crossover
                 parent1 = self._tournament_selection(evaluated_population, tournament_size)
                 parent2 = self._tournament_selection(evaluated_population, tournament_size)
@@ -942,7 +942,7 @@ class EvolutionaryNAS:
                 offspring = await self._crossover_architectures(parent1, parent2)
                 
                 # Apply mutation to offspring
-                if np.random.random() < mutation_rate:
+                if np.secrets.SystemRandom().random() < mutation_rate:
                     offspring = await self._mutate_architecture(offspring)
                 
                 new_population.append(offspring)
@@ -958,7 +958,7 @@ class EvolutionaryNAS:
     def _tournament_selection(self, population: List[VideoArchitecture], 
                             tournament_size: int) -> VideoArchitecture:
         """Select individual using tournament selection."""
-        tournament = np.random.choice(population, min(tournament_size, len(population)), replace=False)
+        tournament = np.secrets.SystemRandom().choice(population, min(tournament_size, len(population)), replace=False)
         return max(tournament, key=lambda x: x.performance_metrics.get("composite_score", -1000))
     
     async def _crossover_architectures(self, 
@@ -985,20 +985,20 @@ class EvolutionaryNAS:
         
         # Take structure from dominant parent, parameters from both
         for i, comp in enumerate(dominant_parent.components):
-            if i < len(recessive_parent.components) and np.random.random() < 0.3:
+            if i < len(recessive_parent.components) and np.secrets.SystemRandom().random() < 0.3:
                 # Take component from recessive parent
                 new_comp = recessive_parent.components[i]
             else:
                 # Take from dominant parent but possibly mutate parameters
                 new_comp = comp
                 
-                if np.random.random() < 0.2:  # 20% chance to mutate parameters
+                if np.secrets.SystemRandom().random() < 0.2:  # 20% chance to mutate parameters
                     # Mutate some parameters
                     mutated_params = comp.parameters.copy()
                     for param_name, param_value in mutated_params.items():
-                        if isinstance(param_value, (int, float)) and np.random.random() < 0.5:
+                        if isinstance(param_value, (int, float)) and np.secrets.SystemRandom().random() < 0.5:
                             if isinstance(param_value, int):
-                                mutated_params[param_name] = max(1, param_value + np.random.randint(-2, 3))
+                                mutated_params[param_name] = max(1, param_value + np.secrets.SystemRandom().randint(-2, 3))
                             else:
                                 mutated_params[param_name] = max(0.0, param_value + np.random.normal(0, 0.1))
                     
@@ -1041,21 +1041,21 @@ class EvolutionaryNAS:
         new_components = []
         
         for component in parent.components:
-            if np.random.random() < 0.3:  # 30% chance to mutate each component
+            if np.secrets.SystemRandom().random() < 0.3:  # 30% chance to mutate each component
                 # Parameter mutation
                 mutated_params = component.parameters.copy()
                 
                 for param_name, param_value in mutated_params.items():
-                    if np.random.random() < 0.5:  # 50% chance to mutate each parameter
+                    if np.secrets.SystemRandom().random() < 0.5:  # 50% chance to mutate each parameter
                         if isinstance(param_value, int):
                             # Integer parameter mutation
                             if param_name in ["num_heads", "num_layers"]:
                                 # Multiplicative mutation for architectural parameters
                                 choices = [param_value // 2, param_value, param_value * 2]
-                                mutated_params[param_name] = max(1, np.random.choice([c for c in choices if c > 0]))
+                                mutated_params[param_name] = max(1, np.secrets.SystemRandom().choice([c for c in choices if c > 0]))
                             else:
                                 # Additive mutation
-                                mutated_params[param_name] = max(1, param_value + np.random.randint(-2, 3))
+                                mutated_params[param_name] = max(1, param_value + np.secrets.SystemRandom().randint(-2, 3))
                         
                         elif isinstance(param_value, float):
                             # Float parameter mutation
@@ -1064,7 +1064,7 @@ class EvolutionaryNAS:
                         
                         elif isinstance(param_value, bool):
                             # Boolean parameter mutation
-                            if np.random.random() < 0.3:
+                            if np.secrets.SystemRandom().random() < 0.3:
                                 mutated_params[param_name] = not param_value
                 
                 # Create mutated component
@@ -1089,9 +1089,9 @@ class EvolutionaryNAS:
                 new_components.append(component)
         
         # Structural mutations (add/remove components)
-        if np.random.random() < 0.1 and len(new_components) < 25:
+        if np.secrets.SystemRandom().random() < 0.1 and len(new_components) < 25:
             # Add component
-            insert_position = np.random.randint(len(new_components))
+            insert_position = np.secrets.SystemRandom().randint(len(new_components))
             input_shape = new_components[insert_position].input_shape
             
             # Choose component type based on pattern
@@ -1100,7 +1100,7 @@ class EvolutionaryNAS:
             elif pattern in ["temporal_first"]:
                 component_type = ArchitectureComponentType.TEMPORAL_BLOCK
             else:
-                component_type = np.random.choice([
+                component_type = np.secrets.SystemRandom().choice([
                     ArchitectureComponentType.CONVOLUTION_BLOCK,
                     ArchitectureComponentType.ATTENTION_BLOCK
                 ])
@@ -1109,9 +1109,9 @@ class EvolutionaryNAS:
                 new_component = self.search_space.sample_component(component_type, input_shape)
                 new_components.insert(insert_position, new_component)
         
-        elif np.random.random() < 0.05 and len(new_components) > 5:
+        elif np.secrets.SystemRandom().random() < 0.05 and len(new_components) > 5:
             # Remove component
-            remove_position = np.random.randint(1, len(new_components) - 1)  # Don't remove first or last
+            remove_position = np.secrets.SystemRandom().randint(1, len(new_components) - 1)  # Don't remove first or last
             new_components.pop(remove_position)
         
         # Update connections

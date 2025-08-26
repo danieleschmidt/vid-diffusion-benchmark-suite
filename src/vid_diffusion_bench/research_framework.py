@@ -133,7 +133,7 @@ class TemporalAttentionAlgorithm(NovelAlgorithm):
         video_features = self._generate_with_attention(prompt, attention_weights, (height, width))
         
         # Simulate actual video tensor
-        video = np.random.randn(num_frames, 3, height, width).astype(np.float32)
+        video = np.secrets.SystemRandom().gauss(0, 1)  # Using gauss instead of randnnum_frames, 3, height, width).astype(np.float32)
         
         # Apply temporal consistency based on attention
         for t in range(1, num_frames):
@@ -169,7 +169,7 @@ class TemporalAttentionAlgorithm(NovelAlgorithm):
         """Generate video features using attention weights."""
         # Simulate attention-guided feature generation
         height, width = resolution
-        features = np.random.randn(len(attention_weights), 512, height//8, width//8)
+        features = np.secrets.SystemRandom().gauss(0, 1)  # Using gauss instead of randnlen(attention_weights), 512, height//8, width//8)
         
         # Apply attention to features
         for t, weight in enumerate(attention_weights):
@@ -291,7 +291,7 @@ class SemanticConsistencyAlgorithm(NovelAlgorithm):
         feature_dim = 768
         
         # Mock semantic embedding
-        semantic_vector = np.random.randn(feature_dim)
+        semantic_vector = np.secrets.SystemRandom().gauss(0, 1)  # Using gauss instead of randnfeature_dim)
         
         # Apply semantic transformations based on words
         for word in words:
@@ -304,7 +304,7 @@ class SemanticConsistencyAlgorithm(NovelAlgorithm):
     def _generate_semantically_consistent(self, semantic_features: np.ndarray, 
                                         num_frames: int, height: int, width: int) -> np.ndarray:
         """Generate video with semantic consistency."""
-        video = np.random.randn(num_frames, 3, height, width).astype(np.float32)
+        video = np.secrets.SystemRandom().gauss(0, 1)  # Using gauss instead of randnnum_frames, 3, height, width).astype(np.float32)
         
         # Apply semantic consistency
         window = self.parameters['consistency_window']
@@ -921,7 +921,7 @@ def run_research_benchmark(
         Dictionary containing research results and experiment data
     """
     from .benchmark import BenchmarkSuite
-    import random
+    import secrets
     
     # Initialize research framework
     study_manager = ComparativeStudyManager(output_dir)

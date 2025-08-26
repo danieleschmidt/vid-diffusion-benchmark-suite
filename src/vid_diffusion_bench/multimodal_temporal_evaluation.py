@@ -208,11 +208,11 @@ class TemporalAnalyzer:
             segment = TemporalSegment(
                 start_frame=i,
                 end_frame=end_frame,
-                segment_type=np.random.choice(["static", "motion", "transition", "complex"]),
-                motion_magnitude=np.random.uniform(0.1, 0.8),
-                scene_complexity=np.random.uniform(0.2, 0.9),
-                object_count=np.random.randint(1, 6),
-                dominant_colors=[(np.random.randint(0, 255), np.random.randint(0, 255), np.random.randint(0, 255))
+                segment_type=np.secrets.SystemRandom().choice(["static", "motion", "transition", "complex"]),
+                motion_magnitude=np.secrets.SystemRandom().uniform(0.1, 0.8),
+                scene_complexity=np.secrets.SystemRandom().uniform(0.2, 0.9),
+                object_count=np.secrets.SystemRandom().randint(1, 6),
+                dominant_colors=[(np.secrets.SystemRandom().randint(0, 255), np.secrets.SystemRandom().randint(0, 255), np.secrets.SystemRandom().randint(0, 255))
                                for _ in range(3)]
             )
             segments.append(segment)
@@ -222,7 +222,7 @@ class TemporalAnalyzer:
     def _estimate_object_count(self, frames: torch.Tensor) -> int:
         """Estimate number of distinct objects in frame sequence."""
         if not TORCH_AVAILABLE:
-            return np.random.randint(1, 6)
+            return np.secrets.SystemRandom().randint(1, 6)
         
         # Simplified object counting using image segmentation principles
         # In practice, would use proper object detection/segmentation
@@ -260,7 +260,7 @@ class TemporalAnalyzer:
     def _extract_dominant_colors(self, frames: torch.Tensor) -> List[Tuple[int, int, int]]:
         """Extract dominant colors from frame sequence."""
         if not TORCH_AVAILABLE:
-            return [(np.random.randint(0, 255), np.random.randint(0, 255), np.random.randint(0, 255))
+            return [(np.secrets.SystemRandom().randint(0, 255), np.secrets.SystemRandom().randint(0, 255), np.secrets.SystemRandom().randint(0, 255))
                    for _ in range(3)]
         
         # Average frame
@@ -297,7 +297,7 @@ class TemporalAnalyzer:
         Higher scores indicate better temporal consistency.
         """
         if not TORCH_AVAILABLE:
-            return np.random.uniform(0.6, 0.95)
+            return np.secrets.SystemRandom().uniform(0.6, 0.95)
         
         T, C, H, W = video_tensor.shape
         
@@ -330,7 +330,7 @@ class TemporalAnalyzer:
         Compute motion coherence score measuring smoothness of motion.
         """
         if not TORCH_AVAILABLE:
-            return np.random.uniform(0.5, 0.9)
+            return np.secrets.SystemRandom().uniform(0.5, 0.9)
         
         T, C, H, W = video_tensor.shape
         
@@ -371,7 +371,7 @@ class TemporalAnalyzer:
         Compute how well objects persist across frames.
         """
         if not TORCH_AVAILABLE:
-            return np.random.uniform(0.6, 0.95)
+            return np.secrets.SystemRandom().uniform(0.6, 0.95)
         
         # Simplified object persistence using color histograms
         T, C, H, W = video_tensor.shape
@@ -932,79 +932,79 @@ class EmergentPropertiesDetector:
     # Simplified implementations for aesthetic and technical metrics
     def _compute_color_harmony(self, visual_features: np.ndarray) -> float:
         """Compute color harmony score."""
-        return np.random.uniform(0.6, 0.9)  # Placeholder
+        return np.secrets.SystemRandom().uniform(0.6, 0.9)  # Placeholder
     
     def _compute_composition_quality(self, visual_features: np.ndarray) -> float:
         """Compute compositional quality."""
-        return np.random.uniform(0.5, 0.85)  # Placeholder
+        return np.secrets.SystemRandom().uniform(0.5, 0.85)  # Placeholder
     
     def _compute_visual_appeal(self, visual_features: np.ndarray) -> float:
         """Compute visual appeal."""
-        return np.random.uniform(0.6, 0.9)  # Placeholder
+        return np.secrets.SystemRandom().uniform(0.6, 0.9)  # Placeholder
     
     def _compute_lighting_quality(self, visual_features: np.ndarray) -> float:
         """Compute lighting quality."""
-        return np.random.uniform(0.5, 0.9)  # Placeholder
+        return np.secrets.SystemRandom().uniform(0.5, 0.9)  # Placeholder
     
     def _compute_visual_uniqueness(self, visual_features: np.ndarray) -> float:
         """Compute visual uniqueness."""
-        return np.random.uniform(0.4, 0.8)  # Placeholder
+        return np.secrets.SystemRandom().uniform(0.4, 0.8)  # Placeholder
     
     def _compute_motion_creativity(self, motion_features: np.ndarray) -> float:
         """Compute motion creativity."""
-        return np.random.uniform(0.3, 0.8)  # Placeholder
+        return np.secrets.SystemRandom().uniform(0.3, 0.8)  # Placeholder
     
     def _compute_temporal_creativity(self, temporal_features: np.ndarray) -> float:
         """Compute temporal creativity."""
-        return np.random.uniform(0.4, 0.75)  # Placeholder
+        return np.secrets.SystemRandom().uniform(0.4, 0.75)  # Placeholder
     
     def _compute_surprise_combinations(self, video_features: VideoFeatureRepresentation) -> float:
         """Compute surprise in feature combinations."""
-        return np.random.uniform(0.3, 0.7)  # Placeholder
+        return np.secrets.SystemRandom().uniform(0.3, 0.7)  # Placeholder
     
     def _analyze_motion_physics(self, motion_features: np.ndarray) -> float:
         """Analyze motion physics consistency."""
-        return np.random.uniform(0.6, 0.9)  # Placeholder
+        return np.secrets.SystemRandom().uniform(0.6, 0.9)  # Placeholder
     
     def _analyze_object_physics(self, visual_features: np.ndarray) -> float:
         """Analyze object physics consistency."""
-        return np.random.uniform(0.5, 0.85)  # Placeholder
+        return np.secrets.SystemRandom().uniform(0.5, 0.85)  # Placeholder
     
     def _analyze_gravity_consistency(self, motion_features: np.ndarray) -> float:
         """Analyze gravity consistency."""
-        return np.random.uniform(0.6, 0.9)  # Placeholder
+        return np.secrets.SystemRandom().uniform(0.6, 0.9)  # Placeholder
     
     def _analyze_color_emotion(self, visual_features: np.ndarray) -> float:
         """Analyze emotional impact of colors."""
-        return np.random.uniform(0.4, 0.8)  # Placeholder
+        return np.secrets.SystemRandom().uniform(0.4, 0.8)  # Placeholder
     
     def _analyze_motion_emotion(self, motion_features: np.ndarray) -> float:
         """Analyze emotional impact of motion."""
-        return np.random.uniform(0.3, 0.75)  # Placeholder
+        return np.secrets.SystemRandom().uniform(0.3, 0.75)  # Placeholder
     
     def _analyze_pacing_emotion(self, temporal_features: np.ndarray) -> float:
         """Analyze emotional impact of pacing."""
-        return np.random.uniform(0.4, 0.8)  # Placeholder
+        return np.secrets.SystemRandom().uniform(0.4, 0.8)  # Placeholder
     
     def _compute_sharpness(self, visual_features: np.ndarray) -> float:
         """Compute image sharpness."""
-        return np.random.uniform(0.7, 0.95)  # Placeholder
+        return np.secrets.SystemRandom().uniform(0.7, 0.95)  # Placeholder
     
     def _compute_noise_level(self, visual_features: np.ndarray) -> float:
         """Compute noise level."""
-        return np.random.uniform(0.05, 0.2)  # Placeholder
+        return np.secrets.SystemRandom().uniform(0.05, 0.2)  # Placeholder
     
     def _compute_motion_blur_quality(self, motion_features: np.ndarray) -> float:
         """Compute motion blur appropriateness."""
-        return np.random.uniform(0.6, 0.9)  # Placeholder
+        return np.secrets.SystemRandom().uniform(0.6, 0.9)  # Placeholder
     
     def _compute_temporal_stability(self, temporal_features: np.ndarray) -> float:
         """Compute temporal stability."""
-        return np.random.uniform(0.7, 0.95)  # Placeholder
+        return np.secrets.SystemRandom().uniform(0.7, 0.95)  # Placeholder
     
     def _compute_motion_unpredictability(self, motion_features: np.ndarray) -> float:
         """Compute motion unpredictability."""
-        return np.random.uniform(0.3, 0.7)  # Placeholder
+        return np.secrets.SystemRandom().uniform(0.3, 0.7)  # Placeholder
 
 
 class MultiModalTemporalEvaluator:
@@ -1060,10 +1060,10 @@ class MultiModalTemporalEvaluator:
         T, C, H, W = video_shape
         
         return VideoFeatureRepresentation(
-            visual_features=np.random.randn(T, 512),  # Mock visual features
-            motion_features=np.random.randn(T-1, H//8, W//8),  # Mock motion features
-            temporal_features=np.random.randn(T, 256),  # Mock temporal features
-            semantic_features=np.random.randn(T, 128),  # Mock semantic features
+            visual_features=np.secrets.SystemRandom().gauss(0, 1)  # Using gauss instead of randnT, 512),  # Mock visual features
+            motion_features=np.secrets.SystemRandom().gauss(0, 1)  # Using gauss instead of randnT-1, H//8, W//8),  # Mock motion features
+            temporal_features=np.secrets.SystemRandom().gauss(0, 1)  # Using gauss instead of randnT, 256),  # Mock temporal features
+            semantic_features=np.secrets.SystemRandom().gauss(0, 1)  # Using gauss instead of randnT, 128),  # Mock semantic features
             audio_features=audio_features
         )
     
@@ -1407,7 +1407,7 @@ async def run_multimodal_evaluation_example():
         video_tensor = type('MockTensor', (), {'shape': (T, C, H, W)})()
     
     # Create mock audio features
-    audio_features = np.random.randn(T, 128)  # 128-dimensional audio features
+    audio_features = np.secrets.SystemRandom().gauss(0, 1)  # Using gauss instead of randnT, 128)  # 128-dimensional audio features
     
     # Text prompt
     text_prompt = "A person walking through a beautiful garden with flowers blooming"

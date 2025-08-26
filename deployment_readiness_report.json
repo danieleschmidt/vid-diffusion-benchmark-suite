@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-08-12T23:25:53.949186",
+  "timestamp": "2025-08-26T01:02:34.538882",
   "framework_version": "1.0.0",
   "deployment_checks": {
     "containerization": {
@@ -19,9 +19,17 @@
       "status": "PASS",
       "errors": [],
       "warnings": [
-        "No Kubernetes manifests found"
+        "Missing essential manifests: ['deployment', 'service']"
       ],
-      "manifests": {}
+      "manifests": {
+        "total_files": 1,
+        "deployment": false,
+        "service": false,
+        "configmap": false,
+        "secret": false,
+        "ingress": false,
+        "hpa": false
+      }
     },
     "ci_cd_pipeline": {
       "status": "PASS",

@@ -165,6 +165,7 @@ class IntelligentCache:
                 return None
             
             with open(file_path, 'rb') as f:
+        # SECURITY: pickle.loads() can execute arbitrary code. Only use with trusted data.
                 return pickle.load(f)
                 
         except Exception as e:
@@ -564,16 +565,16 @@ if __name__ == "__main__":
     @accelerate(enable_cache=True)
     def accelerated_benchmark(model_name: str, prompt: str) -> Dict[str, Any]:
         """Example accelerated benchmark function."""
-        import random
+        import secrets
         
         # Simulate expensive computation
-        time.sleep(random.uniform(0.5, 2.0))
+        time.sleep(secrets.SystemRandom().uniform(0.5, 2.0))
         
         return {
             "model": model_name,
             "prompt": prompt,
-            "fvd": random.uniform(80, 120),
-            "latency": random.uniform(1, 5),
+            "fvd": secrets.SystemRandom().uniform(80, 120),
+            "latency": secrets.SystemRandom().uniform(1, 5),
             "timestamp": time.time()
         }
     

@@ -319,9 +319,9 @@ class AdaptiveScaler:
                 worker.last_heartbeat = current_time
                 
                 # Simulate CPU/memory usage (in real implementation, collect from actual workers)
-                import random
-                worker.cpu_usage = random.uniform(30, 90)
-                worker.memory_usage = random.uniform(40, 85)
+                import secrets
+                worker.cpu_usage = secrets.SystemRandom().uniform(30, 90)
+                worker.memory_usage = secrets.SystemRandom().uniform(40, 85)
     
     def submit_task(self, func: Callable, *args, **kwargs) -> asyncio.Future:
         """Submit a task for execution with adaptive scaling."""
@@ -332,10 +332,10 @@ class AdaptiveScaler:
         future = self.worker_pool.submit(self._execute_task, func, *args, **kwargs)
         
         # Update task count for a random worker (in real implementation, track by worker)
-        import random
+        import secrets
         active_workers = [w for w in self.workers.values() if w.end_time is None]
         if active_workers:
-            worker = random.choice(active_workers)
+            worker = secrets.SystemRandom().choice(active_workers)
             worker.task_count += 1
         
         return future
@@ -348,10 +348,10 @@ class AdaptiveScaler:
             result = func(*args, **kwargs)
             
             # Update success metrics
-            import random
+            import secrets
             active_workers = [w for w in self.workers.values() if w.end_time is None]
             if active_workers:
-                worker = random.choice(active_workers)
+                worker = secrets.SystemRandom().choice(active_workers)
                 worker.success_count += 1
                 worker.total_duration += time.time() - start_time
             
@@ -359,10 +359,10 @@ class AdaptiveScaler:
             
         except Exception as e:
             # Update failure metrics
-            import random
+            import secrets
             active_workers = [w for w in self.workers.values() if w.end_time is None]
             if active_workers:
-                worker = random.choice(active_workers)
+                worker = secrets.SystemRandom().choice(active_workers)
                 worker.failure_count += 1
             
             raise
@@ -533,14 +533,14 @@ def create_distributed_runner(
 if __name__ == "__main__":
     # Example benchmark function
     def mock_benchmark(model: str, prompt: str) -> Dict[str, Any]:
-        import random
-        time.sleep(random.uniform(1, 5))  # Simulate work
+        import secrets
+        time.sleep(secrets.SystemRandom().uniform(1, 5))  # Simulate work
         
         return {
             "model": model,
             "prompt": prompt,
-            "fvd": random.uniform(80, 120),
-            "duration": random.uniform(1, 5),
+            "fvd": secrets.SystemRandom().uniform(80, 120),
+            "duration": secrets.SystemRandom().uniform(1, 5),
             "timestamp": time.time()
         }
     

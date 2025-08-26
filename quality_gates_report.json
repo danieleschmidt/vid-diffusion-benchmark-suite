@@ -1,88 +1,89 @@
 {
-  "timestamp": "2025-08-20T23:11:29.868068",
-  "summary": {
-    "total_tests": 11,
-    "passed_tests": 8,
-    "failed_tests": 3,
-    "pass_rate": 72.72727272727273,
-    "final_status": "ACCEPTABLE"
-  },
-  "test_results": [
-    {
-      "name": "Generation 1 - File Structure",
-      "start_time": 1755731489.6974504,
-      "status": "passed",
-      "duration": 0.0002803802490234375
+  "timestamp": "2025-08-26T01:02:31.255084",
+  "framework_version": "1.0.0",
+  "validation_results": {
+    "code_structure": {
+      "status": "PASS",
+      "errors": [],
+      "warnings": [],
+      "metrics": {
+        "total_python_files": 111,
+        "total_lines": 70156
+      }
     },
-    {
-      "name": "Generation 1 - Mock Model Registry",
-      "start_time": 1755731489.6977367,
-      "status": "failed",
-      "duration": 0.16587162017822266,
-      "reason": "Import error: No module named 'torch'"
+    "syntax_validity": {
+      "status": "PASS",
+      "errors": [],
+      "warnings": [],
+      "files_checked": 111
     },
-    {
-      "name": "Generation 2 - Robustness Components",
-      "start_time": 1755731489.8637075,
-      "status": "failed",
-      "duration": 0.0014605522155761719,
-      "reason": "Robustness component error: No module named 'torch'"
+    "documentation": {
+      "status": "PASS",
+      "errors": [],
+      "warnings": [
+        "Many undocumented functions: 479"
+      ],
+      "coverage": {
+        "undocumented_functions": 479
+      }
     },
-    {
-      "name": "Generation 3 - Scaling Components",
-      "start_time": 1755731489.865237,
-      "status": "failed",
-      "duration": 0.0012488365173339844,
-      "reason": "Scaling component error: No module named 'torch'"
+    "security_features": {
+      "status": "PASS",
+      "errors": [],
+      "warnings": [],
+      "features": {
+        "api_authentication": true,
+        "input_validation": true,
+        "rate_limiting": true,
+        "security_modules_count": 4
+      }
     },
-    {
-      "name": "CLI Structure and Commands",
-      "start_time": 1755731489.866541,
-      "status": "passed",
-      "duration": 0.0003495216369628906
+    "research_capabilities": {
+      "status": "PASS",
+      "errors": [],
+      "warnings": [],
+      "capabilities": {
+        "experimental_framework": true,
+        "statistical_analysis": true,
+        "publication_ready": true,
+        "novel_metrics": true,
+        "research_modules_count": 3
+      }
     },
-    {
-      "name": "API Structure",
-      "start_time": 1755731489.866898,
-      "status": "passed",
-      "duration": 0.00026345252990722656
+    "performance_optimization": {
+      "status": "PASS",
+      "errors": [],
+      "warnings": [],
+      "optimizations": {
+        "batch_optimization": true,
+        "distributed_processing": true,
+        "caching": true,
+        "auto_scaling": true,
+        "performance_modules_count": 4,
+        "integrated_performance_config": true
+      }
     },
-    {
-      "name": "Docker and Deployment Structure",
-      "start_time": 1755731489.867166,
-      "status": "passed",
-      "duration": 0.00010585784912109375
-    },
-    {
-      "name": "Configuration Files",
-      "start_time": 1755731489.867275,
-      "status": "passed",
-      "duration": 0.0001475811004638672
-    },
-    {
-      "name": "Monitoring Setup",
-      "start_time": 1755731489.8674264,
-      "status": "passed",
-      "duration": 0.00010657310485839844
-    },
-    {
-      "name": "Documentation Completeness",
-      "start_time": 1755731489.8675363,
-      "status": "passed",
-      "duration": 0.000186920166015625
-    },
-    {
-      "name": "Internationalization Setup",
-      "start_time": 1755731489.867727,
-      "status": "passed",
-      "duration": 0.0002071857452392578
+    "production_readiness": {
+      "status": "PASS",
+      "errors": [],
+      "warnings": [],
+      "features": {
+        "deployment_artifacts": 4,
+        "reliability_framework": true,
+        "monitoring_configs": 4,
+        "rest_api": true
+      }
     }
-  ],
-  "terragon_sdlc": {
-    "generation_1": "\u274c Generation 1: 50% (1/2)",
-    "generation_2": "\u274c Generation 2: 0% (0/1)",
-    "generation_3": "\u274c Generation 3: 0% (0/1)",
-    "architecture": "\u2705 Architecture: 100% (4/4)",
-    "global_readiness": "\u2705 Global Readiness: 100% (3/3)"
+  },
+  "overall_status": "PASS",
+  "summary": {
+    "total_checks": 7,
+    "passed_checks": 7,
+    "failed_checks": 0,
+    "checks_with_warnings": 1,
+    "critical_issues": [],
+    "warning_areas": [
+      "documentation"
+    ]
   }
 }
