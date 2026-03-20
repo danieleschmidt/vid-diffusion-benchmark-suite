@@ -1,1 +1,0 @@
-"""Test suite for Video Diffusion Benchmark Suite."""
